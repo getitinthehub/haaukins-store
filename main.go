@@ -10,14 +10,21 @@ import (
 	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
+	"os"
 )
 
 const (
 	port = ":50051"
 )
 
+
+
 type server struct {
-	store database.Store
+	store 	database.Store
+	auth 	Authenticator
+	tls		bool
+	cert	string
+	certKey string
 }
 
 func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.InsertResponse, error) {
@@ -108,29 +115,92 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
+func (s server) grpcOpts() ([]grpc.ServerOption, error) {
+	if s.tls {
+		creds, err := credentials.NewServerTLSFromFile(s.cert, s.certKey)
+		if err != nil {
+			return []grpc.ServerOption{}, err
+		}
+		return []grpc.ServerOption{grpc.Creds(creds)}, nil
+	}
+	return []grpc.ServerOption{}, nil
+}
+
+func (s server) GetGRPCServer(opts ...grpc.ServerOption) *grpc.Server {
+
+	streamInterceptor := func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if err := s.auth.AuthenticateContext(stream.Context()); err != nil {
+			return err
+		}
+		return handler(srv, stream)
+	}
+
+	unaryInterceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		if err := s.auth.AuthenticateContext(ctx); err != nil {
+			return nil, err
+		}
+		return handler(ctx, req)
+	}
+
+	opts = append([]grpc.ServerOption{
+		grpc.StreamInterceptor(streamInterceptor),
+		grpc.UnaryInterceptor(unaryInterceptor),
+	}, opts...)
+	return grpc.NewServer(opts...)
+}
+
 func main() {
 	store, err := database.NewStore()
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	//todo specify them in docker-compose and add them in dockerfile
-	certFile	:= "/haaukins/server.crt"
-	keyFile		:= "/haaukins/server.key"
-
-	creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
-	if err != nil {
-		log.Fatalf("failed to create credentials: %v", err)
+	tls := false
+	cert := os.Getenv("CERT")
+	key := os.Getenv("CERT_KEY")
+	if cert != "" && key != "" {
+		tls = true
 	}
-	s := grpc.NewServer(grpc.Creds(creds))
+
+	s := &server{
+		store:		store,
+		auth: 		NewAuthenticator(os.Getenv("SIGNIN_KEY")),
+		tls: 		tls,
+		cert:   	cert,
+		certKey:    key,
+	}
+
+	if s.tls {
+		////todo specify them in docker-compose and add them in dockerfile
+		//certFile	:= "/haaukins/server.crt"
+		//keyFile		:= "/haaukins/server.key"
+		//
+		//creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
+		//if err != nil {
+		//	log.Fatalf("failed to create credentials: %v", err)
+		//}
+		//s := grpc.NewServer(grpc.Creds(creds))
+		//lis, err := net.Listen("tcp", port)
+		//if err != nil {
+		//	log.Fatalf("failed to listen: %v", err)
+		//}
+	}
+
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	pb.RegisterStoreServer(s, &server{store:store})
+	opts, err := s.grpcOpts()
+	if err != nil {
+		log.Fatal("failed to retrieve server options")
+	}
+
+	gRPCServer := s.GetGRPCServer(opts...)
+	pb.RegisterStoreServer(gRPCServer, s)
+
 	fmt.Println("waiting client")
-	if err := s.Serve(lis); err != nil {
+	if err := gRPCServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 

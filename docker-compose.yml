@@ -8,6 +8,8 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
+      - AUTH_KEY=${AUTH_KEY}
+      - SIGNIN_KEY=${SIGNIN_KEY}
     build: .
     ports:
       - 50051:50051
