@@ -63,7 +63,6 @@ func (a *auth) AuthenticateContext(ctx context.Context) error {
 	}
 
 	authKey, ok := claims[AUTH_KEY].(string)
-	fmt.Println("key = " + authKey)
 	if !ok {
 		return InvalidTokenFormatErr
 	}

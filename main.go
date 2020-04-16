@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 const (
@@ -155,35 +156,18 @@ func main() {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	tls := false
-	cert := os.Getenv("CERT")
-	key := os.Getenv("CERT_KEY")
-	if cert != "" && key != "" {
-		tls = true
+	tls := true
+	mode := os.Getenv("SSL_OFF")
+	if strings.ToLower(mode) == "true" {
+		tls = false
 	}
 
 	s := &server{
 		store:		store,
 		auth: 		NewAuthenticator(os.Getenv("SIGNIN_KEY")),
 		tls: 		tls,
-		cert:   	cert,
-		certKey:    key,
-	}
-
-	if s.tls {
-		////todo specify them in docker-compose and add them in dockerfile
-		//certFile	:= "/haaukins/server.crt"
-		//keyFile		:= "/haaukins/server.key"
-		//
-		//creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
-		//if err != nil {
-		//	log.Fatalf("failed to create credentials: %v", err)
-		//}
-		//s := grpc.NewServer(grpc.Creds(creds))
-		//lis, err := net.Listen("tcp", port)
-		//if err != nil {
-		//	log.Fatalf("failed to listen: %v", err)
-		//}
+		cert:   	"/certs/server.crt",
+		certKey:    "/certs/server.key",
 	}
 
 	lis, err := net.Listen("tcp", port)
@@ -198,7 +182,6 @@ func main() {
 
 	gRPCServer := s.GetGRPCServer(opts...)
 	pb.RegisterStoreServer(gRPCServer, s)
-
 	fmt.Println("waiting client")
 	if err := gRPCServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

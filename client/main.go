@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -17,8 +16,6 @@ import (
 const (
 	address     = "localhost:50051"
 	AUTH_KEY    = "au"
-	NoTokenErrMsg     = "token contains an invalid number of segments"
-	UnauthorizeErrMsg = "unauthorized"
 )
 
 var (
@@ -43,11 +40,16 @@ func (c Creds) RequireTransportSecurity() bool {
 
 func main(){
 
+	//todo just for test purpose
+	test_auth_key := "c41ec030-db76-473f-a504-5a7323aa04ec"
+	test_sign_key := "34b16c10-1a2c-4533-83e8-cfde78817501"
+	test_cert_path := "/home/gian/Documents/haaukins_files/server.crt"
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		AUTH_KEY: "c41ec030-db76-473f-a504-5a7323aa04ec",
+		AUTH_KEY: test_auth_key,
 	})
 
-	tokenString, err := token.SignedString([]byte("34b16c10-1a2c-4533-83e8-cfde78817501"))
+	tokenString, err := token.SignedString([]byte(test_sign_key))
 	if err != nil {
 		fmt.Println("Error creating the token")
 	}
@@ -56,10 +58,9 @@ func main(){
 	authCreds := Creds{Token: tokenString}
 	dialOpts := []grpc.DialOption{}
 
-	ssl := false
+	ssl := true
 	if ssl {
-		pool, _ := x509.SystemCertPool()
-		creds := credentials.NewClientTLSFromCert(pool, "")
+		creds, _ := credentials.NewClientTLSFromFile(test_cert_path, "")
 		dialOpts = append(dialOpts,
 			grpc.WithTransportCredentials(creds),
 			grpc.WithPerRPCCredentials(authCreds))
