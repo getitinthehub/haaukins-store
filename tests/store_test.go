@@ -60,7 +60,7 @@ func TestStoreConnection(t *testing.T){
 			}
 
 			authCreds := Creds{Token: tokenString}
-			creds, _ := credentials.NewClientTLSFromFile("/certs/server.crt", "")
+			creds, _ := credentials.NewClientTLSFromFile(os.Getenv("CERT"), "")
 
 			dialOpts := []grpc.DialOption{
 				grpc.WithTransportCredentials(creds),

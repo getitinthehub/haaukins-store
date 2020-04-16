@@ -166,8 +166,8 @@ func main() {
 		store:		store,
 		auth: 		NewAuthenticator(os.Getenv("SIGNIN_KEY")),
 		tls: 		tls,
-		cert:   	"/certs/server.crt",
-		certKey:    "/certs/server.key",
+		cert:   	os.Getenv("CERT"),
+		certKey:    os.Getenv("CERT_KEY"),
 	}
 
 	lis, err := net.Listen("tcp", port)
