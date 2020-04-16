@@ -6,7 +6,7 @@ services:
       - .env
     build:
       context: .
-      dockerfile: Dockerfile.test
+      dockerfile: Dockerfile.tests
     ports:
       - 50051:50051
     depends_on:
