@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	address     = "localhost:50051"
 	AUTH_KEY    = "au"
 )
 
@@ -33,6 +32,8 @@ func (c Creds) RequireTransportSecurity() bool {
 }
 
 func TestStoreConnection(t *testing.T){
+
+	address := os.Getenv("HOST")
 
 	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		AUTH_KEY: os.Getenv("AUTH_KEY"),
