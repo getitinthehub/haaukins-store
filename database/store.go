@@ -45,11 +45,11 @@ func NewStore() (Store, error){
 
 func NewDBConnection() (*sql.DB, error){
 
-	host 		:= os.Getenv("DB_HOST")
+	host 		:= os.Getenv("DATABASE_HOST")
 	portString	:= os.Getenv("DB_PORT")
-	dbUser     := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName     := os.Getenv("DB_NAME")
+	dbUser     := os.Getenv("POSTGRES_USER")
+	dbPassword := os.Getenv("POSTGRES_PASSWORD")
+	dbName     := os.Getenv("POSTGRES_DB")
 
 	//host 		:= "localhost"
 	//portString	:= "5432"
