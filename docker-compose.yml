@@ -36,7 +36,10 @@ services:
     depends_on:
       - postgres-db
     ports:
-      - "5050:80"
+      - "5050:443"
+    volumes: 
+      - ${CERTS_PATH}/cli2.sec-aau.dk/fullchain.pem:/certs/server.cert
+      - ${CERTS_PATH}/cli2.sec-aau.dk/privkey.pem:/certs/server.key
     networks:
       - internal
     restart: unless-stopped
