@@ -35,10 +35,10 @@ services:
       - .env
     depends_on:
       - postgres-db
-    ports:
-      - "5050:443"
-    volumes: 
-      - ${CERTS_PATH}/cli2.sec-aau.dk/fullchain.pem:/certs/server.cert
+    ports: # will be used in secure communication
+      - "5050:443" # port 443 binded instead of 80
+    volumes:
+      - ${CERTS_PATH}/cli2.sec-aau.dk/fullchain.pem:/certs/server.cert # binded to use given certs in env file
       - ${CERTS_PATH}/cli2.sec-aau.dk/privkey.pem:/certs/server.key
     networks:
       - internal
