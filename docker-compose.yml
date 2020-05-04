@@ -15,7 +15,6 @@ services:
     networks:
       - internal
 
-
   postgres-db:
     image: postgres:latest
     container_name: postgres

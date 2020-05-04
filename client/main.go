@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	address     = "localhost:50051"
-	AUTH_KEY    = "au"
+	address  = "localhost:50051"
+	AUTH_KEY = "au"
 )
 
 var (
@@ -38,7 +38,7 @@ func (c Creds) RequireTransportSecurity() bool {
 	return !c.Insecure
 }
 
-func main(){
+func main() {
 
 	//todo just for test purpose
 	test_auth_key := "c41ec030-db76-473f-a504-5a7323aa04ec"
@@ -53,7 +53,6 @@ func main(){
 	if err != nil {
 		fmt.Println("Error creating the token")
 	}
-
 
 	authCreds := Creds{Token: tokenString}
 	dialOpts := []grpc.DialOption{}
@@ -81,16 +80,15 @@ func main(){
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-
 	r, err := c.GetEvents(ctx, &pb.EmptyRequest{})
-	if err != nil{
+	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	if r.ErrorMessage != ""{
+	if r.ErrorMessage != "" {
 		log.Fatalf("my could not greet: %v", r.ErrorMessage)
 	}
 	//log.Println(r.Message)
-	for _, e := range r.Events{
+	for _, e := range r.Events {
 		fmt.Println(e)
 	}
 }
