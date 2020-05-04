@@ -14,6 +14,10 @@ import (
 	"os"
 )
 
+var (
+	timeFormat = "2006-01-02 15:04:05"
+	OK =  "ok"
+)
 
 type store struct {
 	m sync.Mutex
@@ -45,17 +49,12 @@ func NewStore() (Store, error){
 
 func NewDBConnection() (*sql.DB, error){
 
+	// todo: optimize this approach, looks ugly
 	host 		:= os.Getenv("DATABASE_HOST")
 	portString	:= os.Getenv("DB_PORT")
 	dbUser     := os.Getenv("POSTGRES_USER")
 	dbPassword := os.Getenv("POSTGRES_PASSWORD")
 	dbName     := os.Getenv("POSTGRES_DB")
-
-	//host 		:= "localhost"
-	//portString	:= "5432"
-	//dbUser     := "root"
-	//dbPassword := "root"
-	//dbName     := "mydb"
 
 	port, err := strconv.Atoi(portString)
 	if err != nil {
@@ -83,9 +82,7 @@ func (s store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	addEventQuery := "INSERT INTO event (tag, name, available, capacity, frontends, exercises, started_at, finish_expected)" +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
-	_, err := s.db.Exec(addEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Exercises, in.StartTime, in.ExpectedFinishTime)
+	_, err := s.db.Exec(ADD_EVENT_QUERY, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Exercises, in.StartTime, in.ExpectedFinishTime)
 
 	if err != nil {
 		return "", err
@@ -98,11 +95,8 @@ func (s store) AddTeam(in *pb.AddTeamRequest) (string, error){
 	defer s.m.Unlock()
 
 	now := time.Now()
-	nowString := now.Format("2006-01-02 15:04:05")
-	addTeamQuery := "INSERT INTO team (id, event_tag, email, name, password, created_at, last_access, solved_challenges)" +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
-
-	_, err := s.db.Exec(addTeamQuery, in.Id, in.EventTag, in.Email, in.Name, in.Password, nowString, nowString, "[]")
+	nowString := now.Format(timeFormat)
+	_, err := s.db.Exec(ADD_TEAM_QUERY, in.Id, in.EventTag, in.Email, in.Name, in.Password, nowString, nowString, "[]")
 	if err != nil {
 		return "", err
 	}
@@ -114,12 +108,14 @@ func (s store) GetEvents() ([]model.Event, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.db.Query("SELECT * FROM event")
+	rows, err := s.db.Query(QUERY_EVENT_TABLE)
 	if err != nil{
 		return []model.Event{}, err
 	}
 	var events []model.Event
 	for rows.Next() {
+
+		// todo  : optimize this one, looks ugly
 		var tag 				string
 		var name 				string
 		var frontends 			string
@@ -150,11 +146,12 @@ func (s store) GetTeams(tag string) ([]model.Team, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.db.Query("SELECT * FROM team WHERE event_tag=$1", tag)
+	rows, err := s.db.Query(QUERY_EVENT_TEAMS, tag)
 	if err != nil{
 		return []model.Team{}, err
 	}
 
+	// todo  : optimize this one, looks ugly
 	var teams []model.Team
 	for rows.Next(){
 		var id 					string
@@ -193,7 +190,7 @@ func (s store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest
 	var solvedChallenges []Challenge
 	var solvedChallengesDB string
 
-	if err := s.db.QueryRow("SELECT solved_challenges FROM team WHERE id=$1", in.TeamId).Scan(&solvedChallengesDB); err != nil {
+	if err := s.db.QueryRow(QUERY_SOLVED_CHLS, in.TeamId).Scan(&solvedChallengesDB); err != nil {
 		return "", err
 	}
 
@@ -214,34 +211,34 @@ func (s store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest
 
 	newSolvedChallengesDB, _ := json.Marshal(solvedChallenges)
 
-	_, err := s.db.Exec("UPDATE team SET solved_challenges = $2 WHERE id = $1", in.TeamId, string(newSolvedChallengesDB))
+	_, err := s.db.Exec(UPDATE_TEAM_SOLVED_CHL, in.TeamId, string(newSolvedChallengesDB))
 	if err != nil {
 		return "", err
 	}
 
-	return "ok", nil
+	return OK, nil
 }
 
 func (s store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec("UPDATE team SET last_access = $2 WHERE id = $1", in.TeamId, in.AccessAt)
+	_, err := s.db.Exec(UPDATE_EVENT_LASTACCESSED_DATE, in.TeamId, in.AccessAt)
 	if err != nil {
 		return "", err
 	}
 
-	return "ok", nil
+	return OK, nil
 }
 
 func (s store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec("UPDATE event SET finished_at = $2 WHERE id = $1", in.EventId, in.FinishedAt)
+	_, err := s.db.Exec(UPDATE_EVENT_FINISH_DATE, in.EventId, in.FinishedAt)
 	if err != nil {
 		return "", err
 	}
 
-	return "ok", nil
+	return OK, nil
 }

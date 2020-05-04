@@ -1,26 +1,35 @@
-name: Docker Image CI
-
-on: [push]
+name: Build and  Publish Docker
+on: [push, pull_request]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-    env:
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_PORT: ${{ secrets.DB_PORT }}
-      PGADMIN_DEFAULT_EMAIL: ${{ secrets.PGADMIN_DEFAULT_EMAIL }}
-      PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
-      AUTH_KEY: ${{ secrets.AUTH_KEY }}
-      SIGNIN_KEY: ${{ secrets.SIGNIN_KEY }}
-
     steps:
-    - uses: actions/checkout@v1
-    - name: Build the docker-compose stack
-      run: docker-compose -f docker-compose.yml up -d
-    - name: Check running containers
-      run: docker ps -a
+      - name: Set up Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+        id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+             dep ensure
+          fi
+      - name: Test
+        run: |
+          go build -o server .
+          chmod +x ./server
+          ./server &
+          go test ./tests
+
+        env:
+          SSL_OFF: true
+          CERT: ./certs/server.crt
+          CERT_KEY: ./certs/server.key
+          SIGNIN_KEY: random-signin-key
+
+
