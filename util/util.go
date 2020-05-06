@@ -118,7 +118,7 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 }
 
 func GetCreds() (credentials.TransportCredentials,error) {
-
+	log.Printf("Preparing credentials for RPC")
 	// todo: change environment variables into configuration
 	// add handling functionality
 	certificateProps := certificate{
@@ -208,7 +208,6 @@ func readContent(path string) error {
 
 func InitilizegRPCServer() *server {
 
-
 	store, err := database.NewStore()
 
 	if err != nil {
@@ -227,6 +226,5 @@ func InitilizegRPCServer() *server {
 		auth:    NewAuthenticator(os.Getenv("SIGNIN_KEY")),
 		tls:     tls,
 	}
-
 	return s
 }
