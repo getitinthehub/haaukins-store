@@ -41,8 +41,6 @@ jobs:
              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
              dep ensure
           fi
-      - name: Copy Certificates
-        run: cp -r ./tests/certs /
 
       - name: Test
         run: |
@@ -63,7 +61,3 @@ jobs:
           POSTGRES_PASSWORD: dummy-password
           POSTGRES_DB: dummy-db
           HOST: localhost:50051
-
-      - name: Clean up certificates path
-        run : rm -rf /certs
-
