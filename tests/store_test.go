@@ -2,16 +2,15 @@ package tests
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
-	rpc "github.com/aau-network-security/haaukins-store/grpc"
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"github.com/dgrijalva/jwt-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/test/bufconn"
-	"log"
-	"net"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -21,31 +20,17 @@ const (
 	AUTH_KEY = "au"
 )
 
+var (
+	testCertPath    = strings.Replace(os.Getenv("CERT"), "./tests/","./",1)
+	testCertKeyPath = strings.Replace(os.Getenv("CERT_KEY"), "./tests/","./",1)
+	testCAPath 		= strings.Replace(os.Getenv("CA"), "./tests/","./",1)
+)
+
 type Creds struct {
 	Token    string
 	Insecure bool
 }
 
-const bufSize = 1024 * 1024
-
-var lis *bufconn.Listener
-
-func init() {
-	lis = bufconn.Listen(bufSize)
-	s := grpc.NewServer()
-	testCertPath    := strings.Replace(os.Getenv("CERT"), "./tests/","./",1)
-	testCertKeyPath := strings.Replace(os.Getenv("CERT_KEY"), "./tests/","./",1)
-	pb.RegisterStoreServer(s, rpc.InitilizegRPCServer(testCertPath,testCertKeyPath))
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			log.Fatalf("Server exited with error: %v", err)
-		}
-	}()
-}
-
-func bufDialer(context.Context, string) (net.Conn, error) {
-	return lis.Dial()
-}
 
 func (c Creds) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
 	return map[string]string{
@@ -58,7 +43,7 @@ func (c Creds) RequireTransportSecurity() bool {
 }
 
 func TestStoreConnection(t *testing.T) {
-	testCertPath    := strings.Replace(os.Getenv("CERT"), "./tests/","./",1)
+	addr := os.Getenv("HOST")
 
 	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		AUTH_KEY: os.Getenv("AUTH_KEY"),
@@ -87,14 +72,38 @@ func TestStoreConnection(t *testing.T) {
 			}
 
 			authCreds := Creds{Token: tokenString}
-			creds, _ := credentials.NewClientTLSFromFile(testCertPath, "")
+
+			// Load the client certificates from disk
+			certificate, err := tls.LoadX509KeyPair(testCertPath, testCertKeyPath)
+			if err != nil {
+				t.Fatalf("could not load client key pair: %s", err)
+			}
+
+			// Create a certificate pool from the certificate authority
+			certPool := x509.NewCertPool()
+			ca, err := ioutil.ReadFile(testCAPath)
+			if err != nil {
+				t.Fatalf("could not read ca certificate: %s", err)
+			}
+
+			// Append the certificates from the CA
+			if ok := certPool.AppendCertsFromPEM(ca); !ok {
+				 t.Fatalf("failed to append ca certs")
+			}
+
+			creds := credentials.NewTLS(&tls.Config{
+				ServerName:   addr,
+				Certificates: []tls.Certificate{certificate},
+				RootCAs:      certPool,
+			})
 
 			dialOpts := []grpc.DialOption{
-				grpc.WithContextDialer(bufDialer),
 				grpc.WithTransportCredentials(creds),
 				grpc.WithPerRPCCredentials(authCreds),
 			}
-			conn, err := grpc.DialContext(context.Background(), "bufnet", dialOpts...)
+			// Create a connection with the TLS credentials
+
+			conn, err := grpc.Dial(addr, dialOpts...)
 			if err != nil {
 				t.Fatalf("Connection error: %v", err)
 			}
@@ -129,7 +138,7 @@ func TestStoreConnection(t *testing.T) {
 //todo add more tests cases and make the CI
 //func TestStoreConnectionWithoutToken(t *testing.T){
 //
-//	conn, err := grpc.Dial(address, grpc.WithInsecure())
+//	conn, err := util.Dial(address, util.WithInsecure())
 //	if err != nil {
 //		t.Fatalf("Connection error: %v", err)
 //	}

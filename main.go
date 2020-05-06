@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	rpc "github.com/aau-network-security/haaukins-store/grpc"
 	pb "github.com/aau-network-security/haaukins-store/proto"
+	rpc "github.com/aau-network-security/haaukins-store/util"
 	_ "github.com/lib/pq"
 	"log"
 	"net"
-	"os"
 )
 
 const (
@@ -15,9 +14,8 @@ const (
 )
 
 func main() {
-	certificate := os.Getenv("CERT")
-	certificateKey := os.Getenv("CERT_KEY")
-	s := rpc.InitilizegRPCServer(certificate,certificateKey)
+
+	s := rpc.InitilizegRPCServer()
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

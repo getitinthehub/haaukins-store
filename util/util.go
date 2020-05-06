@@ -1,12 +1,17 @@
-package grpc
+package util
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
+	"fmt"
 	"github.com/aau-network-security/haaukins-store/database"
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -16,8 +21,12 @@ type server struct {
 	store   database.Store
 	auth    Authenticator
 	tls     bool
-	cert    string
-	certKey string
+}
+
+type certificate struct {
+	cPath 	string
+	cKeyPath  string
+	caPath				string
 }
 
 func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.InsertResponse, error) {
@@ -108,11 +117,50 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
+func GetCreds() (credentials.TransportCredentials,error) {
+
+	// todo: change environment variables into configuration
+	// add handling functionality
+	certificateProps := certificate{
+		cPath:    			os.Getenv("CERT"),
+		cKeyPath: 			os.Getenv("CERT_KEY"),
+		caPath:             os.Getenv("CA"),
+	}
+
+	certificate, err := tls.LoadX509KeyPair(certificateProps.cPath, certificateProps.cKeyPath)
+	if err != nil {
+		return nil,fmt.Errorf("could not load server key pair: %s", err)
+	}
+
+	// Create a certificate pool from the certificate authority
+	certPool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(certificateProps.caPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read ca certificate: %s", err)
+	}
+	// CA file for let's encrypt is located under domain conf as `chain.pem`
+	// pass chain.pem location
+	// Append the client certificates from the CA
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		return nil, errors.New("failed to append client certs")
+	}
+
+	// Create the TLS credentials
+	creds := credentials.NewTLS(&tls.Config{
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{certificate},
+		ClientCAs:    certPool,
+	})
+	return creds, nil
+}
+
 func (s server) GrpcOpts() ([]grpc.ServerOption, error) {
+
 	if s.tls {
-		creds, err := credentials.NewServerTLSFromFile(s.cert, s.certKey)
+		creds,err := GetCreds()
+
 		if err != nil {
-			return []grpc.ServerOption{}, err
+			return []grpc.ServerOption{}, errors.New("Error on retrieving certificates: "+err.Error())
 		}
 		return []grpc.ServerOption{grpc.Creds(creds)}, nil
 	}
@@ -156,13 +204,9 @@ func readContent(path string) error {
 	return nil
 }
 
-type Certificate struct {
-	certificatePath 	string
-	certificateKeyPath  string
-	caPath				string
-}
 
-func InitilizegRPCServer(c Certificate) *server {
+
+func InitilizegRPCServer() *server {
 
 
 	store, err := database.NewStore()
@@ -170,31 +214,18 @@ func InitilizegRPCServer(c Certificate) *server {
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
+	// todo: change handling of tls, the example below not good enough
 
-	//if err := readContent(cert); err != nil {
-	//	log.Fatalf(err.Error())
-	//}
-	//if err := readContent(certkey); err != nil {
-	//	log.Fatalf(err.Error())
-	//}
-
-	//tls := os.Getenv("SSL_OFF")
-	//if strings.ToLower(tls) != "true" {
-	//
-	//
-	//}
-
-
-
-
-
+	tls := true
+	mode := os.Getenv("SSL_OFF")
+	if strings.ToLower(mode) == "true" {
+		tls = false
+	}
 
 	s := &server{
 		store:   store,
 		auth:    NewAuthenticator(os.Getenv("SIGNIN_KEY")),
 		tls:     tls,
-		cert:    cert,
-		certKey: certkey,
 	}
 
 	return s
