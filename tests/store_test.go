@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -20,10 +21,9 @@ const (
 )
 
 var (
-	// this is true when volume is used.
-	testCertPath    = os.Getenv("CERT")
-	testCertKeyPath = os.Getenv("CERT_KEY")
-	testCAPath 		= os.Getenv("CA")
+	testCertPath    = strings.Replace(os.Getenv("CERT"), "./tests/","./",1)
+	testCertKeyPath = strings.Replace(os.Getenv("CERT_KEY"), "./tests/","./",1)
+	testCAPath 		= strings.Replace(os.Getenv("CA"), "./tests/","./",1)
 )
 
 type Creds struct {
