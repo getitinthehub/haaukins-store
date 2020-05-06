@@ -51,8 +51,8 @@ jobs:
         env:  # this is nasty list of env variables, make it pretty
           SSL_OFF: false  # which means ssl enabled
           AUTH_KEY: random-key
-          CERT: ./tests/certs/localhost.crt
-          CERT_KEY: ./tests/certs/localhost.key
+          CERT: ./tests/certs/localhost_50051.crt
+          CERT_KEY: ./tests/certs/localhost_50051.key
           CA : ./tests/certs/haaukins-store.com.crt
           SIGNIN_KEY: random-signin-key
           DATABASE_HOST: localhost
