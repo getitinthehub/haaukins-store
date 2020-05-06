@@ -41,6 +41,8 @@ jobs:
              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
              dep ensure
           fi
+      - name: Copy Certificates
+        run: cp -r ./tests/certs /
 
       - name: Test
         run: |
@@ -51,7 +53,7 @@ jobs:
         env:  # this is nasty list of env variables, make it pretty
           SSL_OFF: false  # which means ssl enabled
           AUTH_KEY: random-key
-          CERTS_PATH: ./tests/certs
+          CERTS_PATH: certs
           CERT: /certs/localhost_50051.crt
           CERT_KEY: /certs/localhost_50051.key
           CA : /certs/haaukins-store.com.crt
@@ -63,4 +65,6 @@ jobs:
           POSTGRES_DB: dummy-db
           HOST: localhost:50051
 
+      - name: Clean up certificates path
+        run : rm -rf /certs
 
