@@ -53,7 +53,7 @@ jobs:
           AUTH_KEY: random-key
           CERT: ./tests/certs/localhost_50051.crt
           CERT_KEY: ./tests/certs/localhost_50051.key
-          CA : ./tests/certs/haaukins-store.com.crt
+          CA: ./tests/certs/haaukins-store.com.crt
           SIGNIN_KEY: random-signin-key
           DATABASE_HOST: localhost
           DB_PORT: 5432
@@ -61,5 +61,3 @@ jobs:
           POSTGRES_PASSWORD: dummy-password
           POSTGRES_DB: dummy-db
           HOST: localhost:50051
-
-

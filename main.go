@@ -23,7 +23,7 @@ func main() {
 
 	opts, err := s.GrpcOpts()
 	if err != nil {
-		log.Fatal("failed to retrieve server options")
+		log.Fatalf("failed to retrieve server options %s", err.Error())
 	}
 
 	gRPCServer := s.GetGRPCServer(opts...)
