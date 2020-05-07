@@ -157,11 +157,12 @@ func GetCreds() (credentials.TransportCredentials,error) {
 func (s server) GrpcOpts() ([]grpc.ServerOption, error) {
 
 	if s.tls {
-		creds,err := GetCreds()
+		creds, err := GetCreds()
 
 		if err != nil {
 			return []grpc.ServerOption{}, errors.New("Error on retrieving certificates: "+err.Error())
 		}
+		log.Println("Server is running in secure mode !")
 		return []grpc.ServerOption{grpc.Creds(creds)}, nil
 	}
 	return []grpc.ServerOption{}, nil
