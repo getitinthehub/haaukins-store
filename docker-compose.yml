@@ -11,10 +11,9 @@ services:
     depends_on:
       - postgres-db
     volumes:
-      - ${CERTS_PATH}:/certs:ro
+      - ${CERTS_PATH}:/certs:ro  # in production, change this CERTS_PATH to your certificate files folder
     networks:
       - internal
-
 
   postgres-db:
     image: postgres:latest

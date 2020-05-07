@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	AUTH_KEY    = "au"
+	AUTH_KEY = "au"
 )
 
 var (
-	InvalidAuthKey   		 = errors.New("Invalid Authentication Key")
-	InvalidTokenFormatErr    = errors.New("Invalid token format")
-	MissingKeyErr      	  	 = errors.New("No Authentication Key provided")
+	InvalidAuthKey        = errors.New("Invalid Authentication Key")
+	InvalidTokenFormatErr = errors.New("Invalid token format")
+	MissingKeyErr         = errors.New("No Authentication Key provided")
 )
 
 type Authenticator interface {
@@ -27,8 +27,8 @@ type auth struct {
 	key string
 }
 
-func NewAuthenticator(key string) Authenticator{
-	return &auth{key:key}
+func NewAuthenticator(key string) Authenticator {
+	return &auth{key: key}
 }
 
 func (a *auth) AuthenticateContext(ctx context.Context) error {

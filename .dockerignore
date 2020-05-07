@@ -1,0 +1,6 @@
+docker-compose.test.yml
+certs
+.github
+.git
+tests
+docker-compose.yml
