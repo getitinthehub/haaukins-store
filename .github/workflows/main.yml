@@ -42,13 +42,15 @@ jobs:
              dep ensure
           fi
 
-      - name: Test
+      - name: Build and Run Server
         run: |
           go build -o server .
           chmod +x ./server
           ./server &
-          go test ./tests
-        env:  # this is nasty list of env variables, make it pretty
-          CERT: ./tests/certs/localhost_50051.crt
-          CERT_KEY: ./tests/certs/localhost_50051.key
-          CA: ./tests/certs/haaukins-store.com.crt
+
+      - name: Run Tests
+        run: go test ./tests
+        env:
+          CERT: ./certs/localhost_50051.crt
+          CERT_KEY: ./certs/localhost_50051.key
+          CA: ./certs/haaukins-store.com.crt
