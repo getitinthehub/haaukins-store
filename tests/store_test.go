@@ -308,3 +308,51 @@ func TestCloseEvent(t *testing.T) {
 		t.Fatalf("Error closing event: %s", err.Error())
 	}
 }
+
+func TestMultipleEventWithSameTag(t *testing.T){
+	t.Log("Testing Multiple Events with same Tags")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	req := pb.AddEventRequest{
+		Name: 				"Test2",
+		Tag: 				"test",
+		Frontends:			"kali",
+		Exercises: 			"ftp,xss,wc,jwt",
+		Available: 			1,
+		Capacity: 			2,
+		StartTime:  		"2020-06-20 14:35:01",
+		ExpectedFinishTime: "2020-06-21 14:35:01",
+
+	}
+
+	_, err = c.AddEvent(context.Background(), &req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.AddTeam(context.Background(), &pb.AddTeamRequest{
+		Id:                   "team1",
+		EventTag:             "test",
+		Email:                "team1@test.dk",
+		Name:                 "Team Test 1",
+		Password:             "password",
+	})
+	if err != nil {
+		t.Fatal()
+	}
+
+	teams, err := c.GetEventTeams(context.Background(), &pb.GetEventTeamsRequest{
+		EventTag:             "test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(teams.Teams) != 1 {
+		t.Fatal("Error getting the stored teams in Testing Multiple Events with same Tags")
+	}
+}
