@@ -135,30 +135,90 @@ func TestStoreConnection(t *testing.T) {
 	}
 }
 
-//todo add more tests cases and make the CI
-//func TestStoreConnectionWithoutToken(t *testing.T){
-//
-//	conn, err := util.Dial(address, util.WithInsecure())
-//	if err != nil {
-//		t.Fatalf("Connection error: %v", err)
-//	}
-//	defer conn.Close()
-//
-//	c := pb.NewStoreClient(conn)
-//
-//	_, err = c.GetEvents(context.Background(), &pb.EmptyRequest{})
-//
-//	expectedError := "No Authentication Key provided"
-//
-//	if err != nil {
-//		st, ok := status.FromError(err)
-//		if ok {
-//			err = fmt.Errorf(st.Message())
-//		}
-//		if err.Error() != expectedError {
-//			t.Fatalf("unexpected error (expected: %s) received: %s", expectedError, err.Error())
-//		}
-//		return
-//	}
-//	t.Fatalf("expected error, but received none")
-//}
+func createTestClient() (pb.StoreClient, error){
+	addr := os.Getenv("HOST")
+
+	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		AUTH_KEY: os.Getenv("AUTH_KEY"),
+	})
+
+	signin_key := os.Getenv("SIGNIN_KEY")
+
+	tokenString, err := tokenCorret.SignedString([]byte(signin_key))
+	if err != nil {
+		return nil, err
+	}
+
+	authCreds := Creds{Token: tokenString}
+
+	// Load the client certificates from disk
+	certificate, err := tls.LoadX509KeyPair(testCertPath, testCertKeyPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a certificate pool from the certificate authority
+	certPool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(testCAPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Append the certificates from the CA
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		return nil, err
+	}
+
+	creds := credentials.NewTLS(&tls.Config{
+		ServerName:   addr,
+		Certificates: []tls.Certificate{certificate},
+		RootCAs:      certPool,
+	})
+
+	dialOpts := []grpc.DialOption{
+		grpc.WithTransportCredentials(creds),
+		grpc.WithPerRPCCredentials(authCreds),
+	}
+
+	// Create a connection with the TLS credentials
+	conn, err := grpc.Dial(addr, dialOpts...)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	c := pb.NewStoreClient(conn)
+	return c, nil
+}
+
+func TestAddEvent(t *testing.T){
+
+	c, err := createTestClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := pb.AddEventRequest{
+		Name: 				"Test",
+		Tag: 				"test",
+		Frontends:			"kali",
+		Exercises: 			"ftp,xss",
+		Available: 			1,
+		Capacity: 			2,
+		StartTime:  		"2020-05-20 14:35:01",
+		ExpectedFinishTime: "2020-05-21 14:35:01",
+
+	}
+
+	_, err = c.AddEvent(context.Background(), &req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := c.GetEvents(context.Background(), &pb.EmptyRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events.Events) != 1 {
+		t.Fatal("Error getting the stored events")
+	}
+}
