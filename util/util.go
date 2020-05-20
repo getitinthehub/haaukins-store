@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aau-network-security/haaukins-store/database"
+	"github.com/aau-network-security/haaukins-store/model"
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
-	"os"
-	"strings"
 )
 
 type server struct {
@@ -127,14 +127,13 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
-func GetCreds() (credentials.TransportCredentials,error) {
+func GetCreds(conf *model.Config) (credentials.TransportCredentials,error) {
 	log.Printf("Preparing credentials for RPC")
-	// todo: change environment variables into configuration
-	// add handling functionality
+
 	certificateProps := certificate{
-		cPath:    			os.Getenv("CERT"),
-		cKeyPath: 			os.Getenv("CERT_KEY"),
-		caPath:             os.Getenv("CA"),
+		cPath:    			conf.TLS.CertFile,
+		cKeyPath: 			conf.TLS.CertKey,
+		caPath:             conf.TLS.CAFile,
 	}
 
 	certificate, err := tls.LoadX509KeyPair(certificateProps.cPath, certificateProps.cKeyPath)
@@ -164,10 +163,10 @@ func GetCreds() (credentials.TransportCredentials,error) {
 	return creds, nil
 }
 
-func (s server) GrpcOpts() ([]grpc.ServerOption, error) {
+func (s server) GrpcOpts(conf *model.Config) ([]grpc.ServerOption, error) {
 
-	if s.tls {
-		creds, err := GetCreds()
+	if conf.TLS.Enabled {
+		creds, err := GetCreds(conf)
 
 		if err != nil {
 			return []grpc.ServerOption{}, errors.New("Error on retrieving certificates: "+err.Error())
@@ -201,25 +200,32 @@ func (s server) GetGRPCServer(opts ...grpc.ServerOption) *grpc.Server {
 	return grpc.NewServer(opts...)
 }
 
-func InitilizegRPCServer() (*server, error) {
+func InitilizegRPCServer(conf *model.Config) (*server, error) {
 
-	store, err := database.NewStore()
+	store, err := database.NewStore(conf)
 
 	if err != nil {
 		return nil, err
 	}
-	// todo: change handling of tls, the example below not good enough
-
-	tls := true
-	mode := os.Getenv("SSL_OFF")
-	if strings.ToLower(mode) == "true" {
-		tls = false
-	}
 
 	s := &server{
 		store:   store,
-		auth:    NewAuthenticator(os.Getenv("SIGNIN_KEY")),
-		tls:     tls,
+		auth:    NewAuthenticator(conf.SigninKey, conf.AuthKey),
+		tls:     conf.TLS.Enabled,
 	}
 	return s, nil
+}
+
+func NewConfigFromFile(path string) (*model.Config, error) {
+	f, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var c model.Config
+	err = yaml.Unmarshal(f, &c)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }

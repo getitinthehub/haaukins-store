@@ -6,7 +6,6 @@ import (
 	"fmt"
 	jwt "github.com/dgrijalva/jwt-go"
 	"google.golang.org/grpc/metadata"
-	"os"
 )
 
 const (
@@ -24,11 +23,12 @@ type Authenticator interface {
 }
 
 type auth struct {
-	key string
+	Skey string 	// Signin Key
+	Akey string		// Auth Key
 }
 
-func NewAuthenticator(key string) Authenticator {
-	return &auth{key: key}
+func NewAuthenticator(Skey, AKey string) Authenticator {
+	return &auth{Skey: Skey, Akey: AKey}
 }
 
 func (a *auth) AuthenticateContext(ctx context.Context) error {
@@ -51,7 +51,7 @@ func (a *auth) AuthenticateContext(ctx context.Context) error {
 			return ctx, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(a.key), nil
+		return []byte(a.Skey), nil
 	})
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (a *auth) AuthenticateContext(ctx context.Context) error {
 		return InvalidTokenFormatErr
 	}
 
-	if authKey != os.Getenv("AUTH_KEY") {
+	if authKey != a.Akey {
 		return InvalidAuthKey
 	}
 

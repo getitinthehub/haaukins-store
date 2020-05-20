@@ -1,0 +1,14 @@
+host: localhost:50051
+auth-key: authkey
+signin-key: signkey
+db:
+  host: localhost
+  user: postgres
+  pass: postgres
+  db_name: dummydb
+  db_port: 5432
+tls:
+  enabled: false
+  certfile: /certs/localhost.crt
+  certkey: /certs/localhost.key
+  cafile: /certs/haaukins-store.com.crt

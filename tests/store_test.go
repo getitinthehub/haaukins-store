@@ -18,6 +18,9 @@ import (
 
 const (
 	AUTH_KEY = "au"
+	AUTH_KEY_VALUE = "authkey"
+	SIGNIN_VALUE = "signkey"
+	HOST = "localhost:50051"
 )
 
 var (
@@ -43,10 +46,9 @@ func (c Creds) RequireTransportSecurity() bool {
 }
 
 func TestStoreConnection(t *testing.T) {
-	addr := os.Getenv("HOST")
 
 	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		AUTH_KEY: os.Getenv("AUTH_KEY"),
+		AUTH_KEY: AUTH_KEY_VALUE,
 	})
 
 	tokenError := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -64,9 +66,8 @@ func TestStoreConnection(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			signin_key := os.Getenv("SIGNIN_KEY")
 
-			tokenString, err := tc.token.SignedString([]byte(signin_key))
+			tokenString, err := tc.token.SignedString([]byte(SIGNIN_VALUE))
 			if err != nil {
 				t.Fatalf("Error creating the token")
 			}
@@ -92,7 +93,7 @@ func TestStoreConnection(t *testing.T) {
 			}
 
 			creds := credentials.NewTLS(&tls.Config{
-				ServerName:   addr,
+				ServerName:   HOST,
 				Certificates: []tls.Certificate{certificate},
 				RootCAs:      certPool,
 			})
@@ -103,7 +104,7 @@ func TestStoreConnection(t *testing.T) {
 			}
 			// Create a connection with the TLS credentials
 
-			conn, err := grpc.Dial(addr, dialOpts...)
+			conn, err := grpc.Dial(HOST, dialOpts...)
 			if err != nil {
 				t.Fatalf("Connection error: %v", err)
 			}
@@ -136,15 +137,12 @@ func TestStoreConnection(t *testing.T) {
 }
 
 func createTestClientConn() (*grpc.ClientConn, error){
-	addr := os.Getenv("HOST")
 
 	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		AUTH_KEY: os.Getenv("AUTH_KEY"),
+		AUTH_KEY: AUTH_KEY_VALUE,
 	})
 
-	signin_key := os.Getenv("SIGNIN_KEY")
-
-	tokenString, err := tokenCorret.SignedString([]byte(signin_key))
+	tokenString, err := tokenCorret.SignedString([]byte(SIGNIN_VALUE))
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +168,7 @@ func createTestClientConn() (*grpc.ClientConn, error){
 	}
 
 	creds := credentials.NewTLS(&tls.Config{
-		ServerName:   addr,
+		ServerName:   HOST,
 		Certificates: []tls.Certificate{certificate},
 		RootCAs:      certPool,
 	})
@@ -181,7 +179,7 @@ func createTestClientConn() (*grpc.ClientConn, error){
 	}
 
 	// Create a connection with the TLS credentials
-	conn, err := grpc.Dial(addr, dialOpts...)
+	conn, err := grpc.Dial(HOST, dialOpts...)
 	if err != nil {
 		return nil, err
 	}

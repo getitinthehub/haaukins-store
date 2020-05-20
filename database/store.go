@@ -9,8 +9,6 @@ import (
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	_ "github.com/lib/pq"
 	"log"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -38,8 +36,8 @@ type Store interface {
 	UpdateEventFinishDate(*pb.UpdateEventRequest) (string, error)
 }
 
-func NewStore() (Store, error) {
-	db, err := NewDBConnection()
+func NewStore(conf *model.Config) (Store, error) {
+	db, err := NewDBConnection(conf)
 
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
@@ -53,23 +51,11 @@ func NewStore() (Store, error) {
 	return &store{db: db}, nil
 }
 
-func NewDBConnection() (*sql.DB, error) {
-
-	// todo: optimize this approach, looks ugly
-	host := os.Getenv("DATABASE_HOST")
-	portString := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("POSTGRES_USER")
-	dbPassword := os.Getenv("POSTGRES_PASSWORD")
-	dbName := os.Getenv("POSTGRES_DB")
-
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return nil, err
-	}
+func NewDBConnection(conf *model.Config) (*sql.DB, error) {
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		host, port, dbUser, dbPassword, dbName)
+		conf.DB.Host, conf.DB.Port, conf.DB.User, conf.DB.Pass, conf.DB.Name)
 	db, err := sql.Open("postgres", psqlInfo)
 
 	if err != nil {
