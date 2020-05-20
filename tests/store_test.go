@@ -58,8 +58,8 @@ func TestStoreConnection(t *testing.T) {
 		token *jwt.Token
 		err   string
 	}{
-		{name: "Normal Authentication", token: tokenCorret},
-		{name: "Unauthorized", token: tokenError, err: "Invalid Authentication Key"},
+		{name: "Test Normal Authentication", token: tokenCorret},
+		{name: "Test Unauthorized", token: tokenError, err: "Invalid Authentication Key"},
 	}
 
 	for _, tc := range tt {
@@ -189,16 +189,13 @@ func createTestClientConn() (*grpc.ClientConn, error){
 }
 
 func TestAddEvent(t *testing.T){
-
+	t.Log("Testing AddEvent and GetEvents functions")
 	conn, err := createTestClientConn()
-
-	defer conn.Close()
-
-	c := pb.NewStoreClient(conn)
-
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
 
 	req := pb.AddEventRequest{
 		Name: 				"Test",
@@ -222,5 +219,92 @@ func TestAddEvent(t *testing.T){
 	}
 	if len(events.Events) != 1 {
 		t.Fatal("Error getting the stored events")
+	}
+}
+
+func TestAddTeam(t *testing.T) {
+	t.Log("Testing AddTeam and GetEventTeams functions")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.AddTeam(context.Background(), &pb.AddTeamRequest{
+		Id:                   "team1",
+		EventTag:             "test",
+		Email:                "team1@test.dk",
+		Name:                 "Team Test 1",
+		Password:             "password",
+	})
+	if err != nil {
+		t.Fatal()
+	}
+
+	teams, err := c.GetEventTeams(context.Background(), &pb.GetEventTeamsRequest{
+		EventTag:             "test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(teams.Teams) != 1 {
+		t.Fatal("Error getting the stored teams")
+	}
+}
+
+func TestTeamSolveChallenge(t *testing.T){
+	t.Log("Testing UpdateTeamSolvedChallenge function")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.UpdateTeamSolvedChallenge(context.Background(), &pb.UpdateTeamSolvedChallengeRequest{
+		TeamId:               "team1",
+		Tag:                  "ftp",
+		CompletedAt:          "2020-05-21 12:35:01",
+
+	})
+	if err != nil {
+		t.Fatalf("Error updating the solved challenges: %s", err.Error())
+	}
+}
+
+func TestTeamUpdateLastAccess(t *testing.T){
+	t.Log("Testing UpdateTeamLastAccess function")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.UpdateTeamLastAccess(context.Background(), &pb.UpdateTeamLastAccessRequest{
+		TeamId:               "team1",
+		AccessAt:             "2020-05-21 12:35:01",
+	})
+	if err != nil {
+		t.Fatalf("Error updating team last access: %s", err.Error())
+	}
+}
+
+func TestCloseEvent(t *testing.T) {
+	t.Log("Testing UpdateEventFinishDate function")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.UpdateEventFinishDate(context.Background(), &pb.UpdateEventRequest{
+		EventId:    "test",
+		FinishedAt: "2020-05-21 14:35:00",
+	})
+	if err != nil {
+		t.Fatalf("Error closing event: %s", err.Error())
 	}
 }
