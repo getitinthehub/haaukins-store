@@ -135,7 +135,7 @@ func TestStoreConnection(t *testing.T) {
 	}
 }
 
-func createTestClient() (pb.StoreClient, error){
+func createTestClientConn() (*grpc.ClientConn, error){
 	addr := os.Getenv("HOST")
 
 	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -185,15 +185,17 @@ func createTestClient() (pb.StoreClient, error){
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	c := pb.NewStoreClient(conn)
-	return c, nil
+	return conn, nil
 }
 
 func TestAddEvent(t *testing.T){
 
-	c, err := createTestClient()
+	conn, err := createTestClientConn()
+
+	defer conn.Close()
+
+	c := pb.NewStoreClient(conn)
+
 	if err != nil {
 		t.Fatal(err)
 	}
