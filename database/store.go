@@ -11,9 +11,12 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
+
+const handleNullConversionError = "converting NULL to string is unsupported"
 
 var (
 	timeFormat = "2006-01-02 15:04:05"
@@ -40,10 +43,12 @@ func NewStore() (Store, error) {
 
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
+		return nil, err
 	}
 	err = InitTables(db)
 	if err != nil {
 		log.Printf("failed to init tables: %v", err)
+		return nil, err
 	}
 	return &store{db: db}, nil
 }
@@ -78,7 +83,7 @@ func NewDBConnection() (*sql.DB, error) {
 	return db, nil
 }
 
-func (s store) AddEvent(in *pb.AddEventRequest) (string, error) {
+func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -90,42 +95,43 @@ func (s store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	return "Event correctly added!", nil
 }
 
-func (s store) AddTeam(in *pb.AddTeamRequest) (string, error) {
+func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	now := time.Now()
 	nowString := now.Format(timeFormat)
-	_, err := s.db.Exec(ADD_TEAM_QUERY, in.Id, in.EventTag, in.Email, in.Name, in.Password, nowString, nowString, "[]")
+
+	var eventId int
+	if err := s.db.QueryRow(QUERY_EVENT_ID, in.EventTag).Scan(&eventId); err != nil {
+		return "", err
+	}
+
+	_, err := s.db.Exec(ADD_TEAM_QUERY, in.Id, eventId, in.Email, in.Name, in.Password, nowString, nowString, "[]")
 	if err != nil {
 		return "", err
 	}
 	return "Team correctly added!", nil
 }
 
-func (s store) GetEvents() ([]model.Event, error) {
+func (s *store) GetEvents() ([]model.Event, error) {
 
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	rows, err := s.db.Query(QUERY_EVENT_TABLE)
 	if err != nil {
-		return []model.Event{}, err
+		return nil, err
 	}
 	var events []model.Event
 	for rows.Next() {
 
-		// todo  : optimize this one, looks ugly
-		var tag string
-		var name string
-		var frontends string
-		var exercises string
-		var available uint
-		var capacity uint
-		var startedAt string
-		var expectedFinishTime string
-		var finishedAt string
-		rows.Scan(&tag, &name, &available, &capacity, &frontends, &exercises, &startedAt, &expectedFinishTime, &finishedAt)
+		var tag, name, frontends, exercises, startedAt, expectedFinishTime, finishedAt string
+		var id, available, capacity  uint
+		err := rows.Scan(&id, &tag, &name, &available, &capacity, &frontends, &exercises, &startedAt, &expectedFinishTime, &finishedAt)
+		if err != nil && !strings.Contains(err.Error(), handleNullConversionError){
+			return nil, err
+		}
 		events = append(events, model.Event{
 			Tag:                tag,
 			Name:               name,
@@ -142,31 +148,31 @@ func (s store) GetEvents() ([]model.Event, error) {
 	return events, nil
 }
 
-func (s store) GetTeams(tag string) ([]model.Team, error) {
+func (s *store) GetTeams(tag string) ([]model.Team, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.db.Query(QUERY_EVENT_TEAMS, tag)
-	if err != nil {
-		return []model.Team{}, err
+	var eventId int
+	if err := s.db.QueryRow(QUERY_EVENT_ID, tag).Scan(&eventId); err != nil && !strings.Contains(err.Error(), "no rows in result set"){
+		return nil, err
 	}
 
-	// todo  : optimize this one, looks ugly
+	rows, err := s.db.Query(QUERY_EVENT_TEAMS, eventId)
+	if err != nil {
+		return nil, err
+	}
+
 	var teams []model.Team
 	for rows.Next() {
-		var id string
-		var eventTag string
-		var email string
-		var name string
-		var password string
-		var createdAt string
-		var lastAccess string
-		var solvedChallenges string
+		var id, eventId int 	//Primary keys on the DB (not used in haaukins)
+		var tag, email, name, password, createdAt, lastAccess, solvedChallenges string
 
-		rows.Scan(&id, &eventTag, &email, &name, &password, &createdAt, &lastAccess, &solvedChallenges)
+		err := rows.Scan(&id, &tag ,&eventId, &email, &name, &password, &createdAt, &lastAccess, &solvedChallenges)
+		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
+			return nil, err
+		}
 		teams = append(teams, model.Team{
-			Id:               id,
-			EventTag:         eventTag,
+			Id:               tag,
 			Email:            email,
 			Name:             name,
 			Password:         password,
@@ -178,7 +184,7 @@ func (s store) GetTeams(tag string) ([]model.Team, error) {
 	return teams, nil
 }
 
-func (s store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest) (string, error) {
+func (s *store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -219,7 +225,7 @@ func (s store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest
 	return OK, nil
 }
 
-func (s store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string, error) {
+func (s *store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -231,7 +237,7 @@ func (s store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string,
 	return OK, nil
 }
 
-func (s store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error) {
+func (s *store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 

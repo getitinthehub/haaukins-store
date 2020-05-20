@@ -14,7 +14,6 @@ type Event struct {
 
 type Team struct {
 	Id               string
-	EventTag         string
 	Email            string
 	Name             string
 	Password         string

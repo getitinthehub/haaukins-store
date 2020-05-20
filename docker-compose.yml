@@ -42,6 +42,8 @@ services:
     networks:
       - internal
     restart: unless-stopped
+    logging:
+      driver: none # disable logs for this service
 
 volumes:
   database_postgres:

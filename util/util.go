@@ -10,7 +10,6 @@ import (
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,16 +23,18 @@ type server struct {
 }
 
 type certificate struct {
-	cPath 	string
-	cKeyPath  string
-	caPath				string
+	cPath 		string
+	cKeyPath  	string
+	caPath		string
 }
 
 func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.InsertResponse, error) {
 	result, err := s.store.AddEvent(in)
 	if err != nil {
+		log.Printf("ERR: Error Add Event %s", err.Error())
 		return &pb.InsertResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Event %s Saved", in.Tag)
 	return &pb.InsertResponse{Message: result}, nil
 
 }
@@ -41,14 +42,17 @@ func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.Inser
 func (s server) AddTeam(ctx context.Context, in *pb.AddTeamRequest) (*pb.InsertResponse, error) {
 	result, err := s.store.AddTeam(in)
 	if err != nil {
+		log.Printf("ERR: Error Add Team %s", err.Error())
 		return &pb.InsertResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Team %s Saved for the Event %s", in.Id, in.EventTag)
 	return &pb.InsertResponse{Message: result}, nil
 }
 
 func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventResponse, error) {
 	result, err := s.store.GetEvents()
 	if err != nil {
+		log.Printf("ERR: Error Get Events %s", err.Error())
 		return &pb.GetEventResponse{ErrorMessage: err.Error()}, nil
 	}
 
@@ -66,7 +70,7 @@ func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventRespon
 			FinishedAt:         e.FinishedAt,
 		})
 	}
-
+	log.Printf("Get Events")
 	return &pb.GetEventResponse{Events: events}, nil
 
 }
@@ -74,6 +78,7 @@ func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventRespon
 func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) (*pb.GetEventTeamsResponse, error) {
 	result, err := s.store.GetTeams(in.EventTag)
 	if err != nil {
+		log.Printf("ERR: Error Get teams for Event %s : %s", in.EventTag, err.Error())
 		return &pb.GetEventTeamsResponse{ErrorMessage: err.Error()}, nil
 	}
 
@@ -89,29 +94,34 @@ func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) 
 			SolvedChallenges: t.SolvedChallenges,
 		})
 	}
-
+	log.Printf("Get Teams")
 	return &pb.GetEventTeamsResponse{Teams: teams}, nil
 }
 
 func (s server) UpdateEventFinishDate(ctx context.Context, in *pb.UpdateEventRequest) (*pb.UpdateResponse, error) {
 	result, err := s.store.UpdateEventFinishDate(in)
 	if err != nil {
+		log.Printf("ERR: Error Update Event %s finish time: %s", in.EventId, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Event %s Stopped", in.EventId)
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
 func (s server) UpdateTeamSolvedChallenge(ctx context.Context, in *pb.UpdateTeamSolvedChallengeRequest) (*pb.UpdateResponse, error) {
 	result, err := s.store.UpdateTeamSolvedChallenge(in)
 	if err != nil {
+		log.Printf("ERR: Error Update team %s solve challenge: %s", in.TeamId, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Team %s solved %s challenge", in.TeamId, in.Tag)
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
 func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastAccessRequest) (*pb.UpdateResponse, error) {
 	result, err := s.store.UpdateTeamLastAccess(in)
 	if err != nil {
+		log.Printf("ERR: Error Update team %s last access: %s", in.TeamId, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
 	return &pb.UpdateResponse{Message: result}, nil
@@ -162,7 +172,7 @@ func (s server) GrpcOpts() ([]grpc.ServerOption, error) {
 		if err != nil {
 			return []grpc.ServerOption{}, errors.New("Error on retrieving certificates: "+err.Error())
 		}
-		log.Println("Server is running in secure mode !")
+		log.Printf("Server is running in secure mode !")
 		return []grpc.ServerOption{grpc.Creds(creds)}, nil
 	}
 	return []grpc.ServerOption{}, nil
@@ -191,28 +201,12 @@ func (s server) GetGRPCServer(opts ...grpc.ServerOption) *grpc.Server {
 	return grpc.NewServer(opts...)
 }
 
-func readContent(path string) error {
-	cont, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-	_, err = io.Copy(os.Stdout, cont)
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-	return nil
-}
-
-
-
-func InitilizegRPCServer() *server {
+func InitilizegRPCServer() (*server, error) {
 
 	store, err := database.NewStore()
 
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		return nil, err
 	}
 	// todo: change handling of tls, the example below not good enough
 
@@ -227,5 +221,5 @@ func InitilizegRPCServer() *server {
 		auth:    NewAuthenticator(os.Getenv("SIGNIN_KEY")),
 		tls:     tls,
 	}
-	return s
+	return s, nil
 }

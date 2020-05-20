@@ -15,15 +15,20 @@ const (
 
 func main() {
 
-	s := rpc.InitilizegRPCServer()
+	s, err := rpc.InitilizegRPCServer()
+	if err != nil {
+		return
+	}
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
+		return
 	}
 
 	opts, err := s.GrpcOpts()
 	if err != nil {
 		log.Fatalf("failed to retrieve server options %s", err.Error())
+		return
 	}
 
 	gRPCServer := s.GetGRPCServer(opts...)
