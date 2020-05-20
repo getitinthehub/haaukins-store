@@ -8,7 +8,7 @@ db:
   db_name: dummydb
   db_port: 5432
 tls:
-  enabled: false
+  enabled: true
   certfile: /certs/localhost.crt
   certkey: /certs/localhost.key
   cafile: /certs/haaukins-store.com.crt
