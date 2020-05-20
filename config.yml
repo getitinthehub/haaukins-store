@@ -9,6 +9,6 @@ db:
   db_port: 5432
 tls:
   enabled: true
-  certfile: /certs/localhost.crt
-  certkey: /certs/localhost.key
-  cafile: /certs/haaukins-store.com.crt
+  certfile: ./tests/certs/localhost_50051.crt
+  certkey: ./tests/certs/localhost_50051.key
+  cafile: ./tests/certs/haaukins-store.com.crt
