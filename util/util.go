@@ -85,7 +85,7 @@ func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) 
 	var teams []*pb.GetEventTeamsResponse_Teams
 	for _, t := range result {
 		teams = append(teams, &pb.GetEventTeamsResponse_Teams{
-			Id:               t.Id,
+			Id:               t.Tag,
 			Email:            t.Email,
 			Name:             t.Name,
 			HashPassword:     t.Password,
@@ -94,7 +94,7 @@ func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) 
 			SolvedChallenges: t.SolvedChallenges,
 		})
 	}
-	log.Printf("Get Teams")
+	log.Printf("Get Teams for the Event %s", in.EventTag)
 	return &pb.GetEventTeamsResponse{Teams: teams}, nil
 }
 
@@ -227,5 +227,35 @@ func NewConfigFromFile(path string) (*model.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if c.Host == "" {
+		log.Println("Host not provided in the configuration file")
+		c.Host = "localhost:50051"
+	}
+
+	if c.SigninKey == "" {
+		log.Println("SigninKey not provided in the configuration file")
+		c.Host = "dev-env"
+	}
+
+	if c.AuthKey == "" {
+		log.Println("AuthKey not provided in the configuration file")
+		c.Host = "development-environment"
+	}
+
+	if c.DB.Host == "" || c.DB.User == "" || c.DB.Pass == "" || c.DB.Name == "" {
+		return nil, errors.New("DB paramenters missing in the configuration file")
+	}
+
+	if c.DB.Port == 0 {
+		c.DB.Port = 5432
+	}
+
+	if c.TLS.Enabled {
+		if c.TLS.CAFile == "" || c.TLS.CertKey == "" || c.TLS.CertFile == "" {
+			return nil, errors.New("Provide Certificates in the config file")
+		}
+	}
+
 	return &c, nil
 }

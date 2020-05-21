@@ -23,12 +23,12 @@ type Authenticator interface {
 }
 
 type auth struct {
-	Skey string 	// Signin Key
-	Akey string		// Auth Key
+	sKey string 	// Signin Key
+	aKey string		// Auth Key
 }
 
 func NewAuthenticator(Skey, AKey string) Authenticator {
-	return &auth{Skey: Skey, Akey: AKey}
+	return &auth{sKey: Skey, aKey: AKey}
 }
 
 func (a *auth) AuthenticateContext(ctx context.Context) error {
@@ -51,7 +51,7 @@ func (a *auth) AuthenticateContext(ctx context.Context) error {
 			return ctx, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(a.Skey), nil
+		return []byte(a.sKey), nil
 	})
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (a *auth) AuthenticateContext(ctx context.Context) error {
 		return InvalidTokenFormatErr
 	}
 
-	if authKey != a.Akey {
+	if authKey != a.aKey {
 		return InvalidAuthKey
 	}
 

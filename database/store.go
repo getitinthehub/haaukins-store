@@ -112,23 +112,13 @@ func (s *store) GetEvents() ([]model.Event, error) {
 	var events []model.Event
 	for rows.Next() {
 
-		var tag, name, frontends, exercises, startedAt, expectedFinishTime, finishedAt string
-		var id, available, capacity  uint
-		err := rows.Scan(&id, &tag, &name, &available, &capacity, &frontends, &exercises, &startedAt, &expectedFinishTime, &finishedAt)
+		event := new(model.Event)
+		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Frontends,
+			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt)
 		if err != nil && !strings.Contains(err.Error(), handleNullConversionError){
 			return nil, err
 		}
-		events = append(events, model.Event{
-			Tag:                tag,
-			Name:               name,
-			Frontends:          frontends,
-			Exercises:          exercises,
-			Available:          available,
-			Capacity:           capacity,
-			StartedAt:          startedAt,
-			ExpectedFinishTime: expectedFinishTime,
-			FinishedAt:         finishedAt,
-		})
+		events = append(events, *event)
 	}
 
 	return events, nil
@@ -150,22 +140,14 @@ func (s *store) GetTeams(tag string) ([]model.Team, error) {
 
 	var teams []model.Team
 	for rows.Next() {
-		var id, eventId int 	//Primary keys on the DB (not used in haaukins)
-		var tag, email, name, password, createdAt, lastAccess, solvedChallenges string
 
-		err := rows.Scan(&id, &tag ,&eventId, &email, &name, &password, &createdAt, &lastAccess, &solvedChallenges)
+		team := new(model.Team)
+		err := rows.Scan(&team.Id, &team.Tag ,&team.EventId, &team.Email, &team.Name, &team.Password, &team.CreatedAt,
+			&team.LastAccess, &team.SolvedChallenges)
 		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
 			return nil, err
 		}
-		teams = append(teams, model.Team{
-			Id:               tag,
-			Email:            email,
-			Name:             name,
-			Password:         password,
-			CreatedAt:        createdAt,
-			LastAccess:       lastAccess,
-			SolvedChallenges: solvedChallenges,
-		})
+		teams = append(teams, *team)
 	}
 	return teams, nil
 }

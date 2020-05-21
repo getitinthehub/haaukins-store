@@ -1,6 +1,7 @@
 package model
 
 type Event struct {
+	Id				   uint 		//DB Primary Key
 	Tag                string
 	Name               string
 	Frontends          string
@@ -13,7 +14,9 @@ type Event struct {
 }
 
 type Team struct {
-	Id               string
+	Id               uint		//DB Primary key
+	Tag				 string
+	EventId 		 uint		//DB Primary key of the event
 	Email            string
 	Name             string
 	Password         string
@@ -23,20 +26,20 @@ type Team struct {
 }
 
 type Config struct {
-	Host 		string `yaml:"host,omitempty"`
-	AuthKey 	string `yaml:"auth-key,omitempty"`
-	SigninKey 	string `yaml:"signin-key,omitempty"`
+	Host 		string `yaml:"host"`
+	AuthKey 	string `yaml:"auth-key"`
+	SigninKey 	string `yaml:"signin-key"`
 	DB struct {
-		Host string `yaml:"host,omitempty"`
-		User string `yaml:"user,omitempty"`
-		Pass string `yaml:"pass,omitempty"`
-		Name string `yaml:"db_name,omitempty"`
-		Port uint 	`yaml:"db_port,omitempty"`
-	} `yaml:"db,omitempty"`
+		Host string `yaml:"host"`
+		User string `yaml:"user"`
+		Pass string `yaml:"pass"`
+		Name string `yaml:"db_name"`
+		Port uint 	`yaml:"db_port"`
+	} `yaml:"db"`
 	TLS struct {
 		Enabled bool `yaml:"enabled"`
 		CertFile 	string `yaml:"certfile"`
 		CertKey 	string `yaml:"certkey"`
 		CAFile 		string `yaml:"cafile"`
-	} `tls:"db,omitempty"`
+	} `tls:"tls,omitempty"`
 }

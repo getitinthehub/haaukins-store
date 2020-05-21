@@ -27,23 +27,24 @@ services:
     networks:
       - internal
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin_container
-    env_file:
-      - .env
-    depends_on:
-      - postgres-db
-    ports: # will be used in secure communication
-      - "5050:443" # port 443 binded instead of 80
-    volumes:
-      - ${CERTS_PATH}/cli2.sec-aau.dk/fullchain.pem:/certs/server.cert # binded to use given certs in env file
-      - ${CERTS_PATH}/cli2.sec-aau.dk/privkey.pem:/certs/server.key
-    networks:
-      - internal
-    restart: unless-stopped
-    logging:
-      driver: none # disable logs for this service
+# It easier and better to use another tools in order to visualize the DB content
+#   pgadmin:
+#     image: dpage/pgadmin4
+#     container_name: pgadmin_container
+#     env_file:
+#       - .env
+#     depends_on:
+#       - postgres-db
+#     ports: # will be used in secure communication
+#       - "5050:443" # port 443 binded instead of 80
+#     volumes:
+#       - ${CERTS_PATH}/cli2.sec-aau.dk/fullchain.pem:/certs/server.cert # binded to use given certs in env file
+#       - ${CERTS_PATH}/cli2.sec-aau.dk/privkey.pem:/certs/server.key
+#     networks:
+#       - internal
+#     restart: unless-stopped
+#     logging:
+#       driver: none # disable logs for this service
 
 volumes:
   database_postgres:
