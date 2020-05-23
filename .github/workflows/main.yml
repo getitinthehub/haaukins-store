@@ -13,9 +13,9 @@ jobs:
         # pulling docker hub
         image: postgres:latest # same with the one which is written on docker-compose
         env:
-          POSTGRES_PASSWORD: dummy-password
-          POSTGRES_USER: dummy-user
-          POSTGRES_DB: dummy-db
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: dummydb
             # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -42,22 +42,15 @@ jobs:
              dep ensure
           fi
 
-      - name: Test
+      - name: Build and Run Server
         run: |
           go build -o server .
           chmod +x ./server
           ./server &
-          go test ./tests
-        env:  # this is nasty list of env variables, make it pretty
-          SSL_OFF: false  # which means ssl enabled
-          AUTH_KEY: random-key
-          CERT: ./tests/certs/localhost_50051.crt
-          CERT_KEY: ./tests/certs/localhost_50051.key
-          CA: ./tests/certs/haaukins-store.com.crt
-          SIGNIN_KEY: random-signin-key
-          DATABASE_HOST: localhost
-          DB_PORT: 5432
-          POSTGRES_USER: dummy-user
-          POSTGRES_PASSWORD: dummy-password
-          POSTGRES_DB: dummy-db
-          HOST: localhost:50051
+
+      - name: Run Tests
+        run: go test ./tests
+        env:
+          CERT: ./certs/localhost_50051.crt
+          CERT_KEY: ./certs/localhost_50051.key
+          CA: ./certs/haaukins-store.com.crt

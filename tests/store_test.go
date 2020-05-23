@@ -12,18 +12,20 @@ import (
 	"google.golang.org/grpc/status"
 	"io/ioutil"
 	"os"
-	"strings"
 	"testing"
 )
 
 const (
 	AUTH_KEY = "au"
+	AUTH_KEY_VALUE = "authkey"
+	SIGNIN_VALUE = "signkey"
+	HOST = "localhost:50051"
 )
 
 var (
-	testCertPath    = strings.Replace(os.Getenv("CERT"), "./tests/","./",1)
-	testCertKeyPath = strings.Replace(os.Getenv("CERT_KEY"), "./tests/","./",1)
-	testCAPath 		= strings.Replace(os.Getenv("CA"), "./tests/","./",1)
+	testCertPath    = os.Getenv("CERT")
+	testCertKeyPath = os.Getenv("CERT_KEY")
+	testCAPath 		= os.Getenv("CA")
 )
 
 type Creds struct {
@@ -43,10 +45,9 @@ func (c Creds) RequireTransportSecurity() bool {
 }
 
 func TestStoreConnection(t *testing.T) {
-	addr := os.Getenv("HOST")
 
 	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		AUTH_KEY: os.Getenv("AUTH_KEY"),
+		AUTH_KEY: AUTH_KEY_VALUE,
 	})
 
 	tokenError := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -58,15 +59,14 @@ func TestStoreConnection(t *testing.T) {
 		token *jwt.Token
 		err   string
 	}{
-		{name: "Normal Authentication", token: tokenCorret},
-		{name: "Unauthorized", token: tokenError, err: "Invalid Authentication Key"},
+		{name: "Test Normal Authentication", token: tokenCorret},
+		{name: "Test Unauthorized", token: tokenError, err: "Invalid Authentication Key"},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			signin_key := os.Getenv("SIGNIN_KEY")
 
-			tokenString, err := tc.token.SignedString([]byte(signin_key))
+			tokenString, err := tc.token.SignedString([]byte(SIGNIN_VALUE))
 			if err != nil {
 				t.Fatalf("Error creating the token")
 			}
@@ -92,7 +92,7 @@ func TestStoreConnection(t *testing.T) {
 			}
 
 			creds := credentials.NewTLS(&tls.Config{
-				ServerName:   addr,
+				ServerName:   HOST,
 				Certificates: []tls.Certificate{certificate},
 				RootCAs:      certPool,
 			})
@@ -103,7 +103,7 @@ func TestStoreConnection(t *testing.T) {
 			}
 			// Create a connection with the TLS credentials
 
-			conn, err := grpc.Dial(addr, dialOpts...)
+			conn, err := grpc.Dial(HOST, dialOpts...)
 			if err != nil {
 				t.Fatalf("Connection error: %v", err)
 			}
@@ -135,30 +135,221 @@ func TestStoreConnection(t *testing.T) {
 	}
 }
 
-//todo add more tests cases and make the CI
-//func TestStoreConnectionWithoutToken(t *testing.T){
-//
-//	conn, err := util.Dial(address, util.WithInsecure())
-//	if err != nil {
-//		t.Fatalf("Connection error: %v", err)
-//	}
-//	defer conn.Close()
-//
-//	c := pb.NewStoreClient(conn)
-//
-//	_, err = c.GetEvents(context.Background(), &pb.EmptyRequest{})
-//
-//	expectedError := "No Authentication Key provided"
-//
-//	if err != nil {
-//		st, ok := status.FromError(err)
-//		if ok {
-//			err = fmt.Errorf(st.Message())
-//		}
-//		if err.Error() != expectedError {
-//			t.Fatalf("unexpected error (expected: %s) received: %s", expectedError, err.Error())
-//		}
-//		return
-//	}
-//	t.Fatalf("expected error, but received none")
-//}
+func createTestClientConn() (*grpc.ClientConn, error){
+
+	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		AUTH_KEY: AUTH_KEY_VALUE,
+	})
+
+	tokenString, err := tokenCorret.SignedString([]byte(SIGNIN_VALUE))
+	if err != nil {
+		return nil, err
+	}
+
+	authCreds := Creds{Token: tokenString}
+
+	// Load the client certificates from disk
+	certificate, err := tls.LoadX509KeyPair(testCertPath, testCertKeyPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a certificate pool from the certificate authority
+	certPool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(testCAPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Append the certificates from the CA
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		return nil, err
+	}
+
+	creds := credentials.NewTLS(&tls.Config{
+		ServerName:   HOST,
+		Certificates: []tls.Certificate{certificate},
+		RootCAs:      certPool,
+	})
+
+	dialOpts := []grpc.DialOption{
+		grpc.WithTransportCredentials(creds),
+		grpc.WithPerRPCCredentials(authCreds),
+	}
+
+	// Create a connection with the TLS credentials
+	conn, err := grpc.Dial(HOST, dialOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
+}
+
+func TestAddEvent(t *testing.T){
+	t.Log("Testing AddEvent and GetEvents functions")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	req := pb.AddEventRequest{
+		Name: 				"Test",
+		Tag: 				"test",
+		Frontends:			"kali",
+		Exercises: 			"ftp,xss",
+		Available: 			1,
+		Capacity: 			2,
+		StartTime:  		"2020-05-20 14:35:01",
+		ExpectedFinishTime: "2020-05-21 14:35:01",
+
+	}
+
+	_, err = c.AddEvent(context.Background(), &req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := c.GetEvents(context.Background(), &pb.EmptyRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events.Events) != 1 {
+		t.Fatal("Error getting the stored events")
+	}
+}
+
+func TestAddTeam(t *testing.T) {
+	t.Log("Testing AddTeam and GetEventTeams functions")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.AddTeam(context.Background(), &pb.AddTeamRequest{
+		Id:                   "team1",
+		EventTag:             "test",
+		Email:                "team1@test.dk",
+		Name:                 "Team Test 1",
+		Password:             "password",
+	})
+	if err != nil {
+		t.Fatal()
+	}
+
+	teams, err := c.GetEventTeams(context.Background(), &pb.GetEventTeamsRequest{
+		EventTag:             "test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(teams.Teams) != 1 {
+		t.Fatal("Error getting the stored teams")
+	}
+}
+
+func TestTeamSolveChallenge(t *testing.T){
+	t.Log("Testing UpdateTeamSolvedChallenge function")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.UpdateTeamSolvedChallenge(context.Background(), &pb.UpdateTeamSolvedChallengeRequest{
+		TeamId:               "team1",
+		Tag:                  "ftp",
+		CompletedAt:          "2020-05-21 12:35:01",
+
+	})
+	if err != nil {
+		t.Fatalf("Error updating the solved challenges: %s", err.Error())
+	}
+}
+
+func TestTeamUpdateLastAccess(t *testing.T){
+	t.Log("Testing UpdateTeamLastAccess function")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.UpdateTeamLastAccess(context.Background(), &pb.UpdateTeamLastAccessRequest{
+		TeamId:               "team1",
+		AccessAt:             "2020-05-21 12:35:01",
+	})
+	if err != nil {
+		t.Fatalf("Error updating team last access: %s", err.Error())
+	}
+}
+
+func TestCloseEvent(t *testing.T) {
+	t.Log("Testing UpdateEventFinishDate function")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	_, err = c.UpdateEventFinishDate(context.Background(), &pb.UpdateEventRequest{
+		EventId:    "test",
+		FinishedAt: "2020-05-21 14:35:00",
+	})
+	if err != nil {
+		t.Fatalf("Error closing event: %s", err.Error())
+	}
+}
+
+func TestMultipleEventWithSameTag(t *testing.T){
+	t.Log("Testing Multiple Events with same Tags")
+	conn, err := createTestClientConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c := pb.NewStoreClient(conn)
+
+	req := pb.AddEventRequest{
+		Name: 				"Test2",
+		Tag: 				"test",
+		Frontends:			"kali",
+		Exercises: 			"ftp,xss,wc,jwt",
+		Available: 			1,
+		Capacity: 			2,
+		StartTime:  		"2020-06-20 14:35:01",
+		ExpectedFinishTime: "2020-06-21 14:35:01",
+
+	}
+
+	_, err = c.AddEvent(context.Background(), &req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.AddTeam(context.Background(), &pb.AddTeamRequest{
+		Id:                   "team1",
+		EventTag:             "test",
+		Email:                "team1@test.dk",
+		Name:                 "Team Test 1",
+		Password:             "password",
+	})
+	if err != nil {
+		t.Fatal()
+	}
+
+	teams, err := c.GetEventTeams(context.Background(), &pb.GetEventTeamsRequest{
+		EventTag:             "test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(teams.Teams) != 1 {
+		t.Fatal("Error getting the stored teams in Testing Multiple Events with same Tags")
+	}
+}

@@ -7,14 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aau-network-security/haaukins-store/database"
+	"github.com/aau-network-security/haaukins-store/model"
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"io"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
-	"os"
-	"strings"
 )
 
 type server struct {
@@ -24,16 +23,18 @@ type server struct {
 }
 
 type certificate struct {
-	cPath 	string
-	cKeyPath  string
-	caPath				string
+	cPath 		string
+	cKeyPath  	string
+	caPath		string
 }
 
 func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.InsertResponse, error) {
 	result, err := s.store.AddEvent(in)
 	if err != nil {
+		log.Printf("ERR: Error Add Event %s", err.Error())
 		return &pb.InsertResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Event %s Saved", in.Tag)
 	return &pb.InsertResponse{Message: result}, nil
 
 }
@@ -41,14 +42,17 @@ func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.Inser
 func (s server) AddTeam(ctx context.Context, in *pb.AddTeamRequest) (*pb.InsertResponse, error) {
 	result, err := s.store.AddTeam(in)
 	if err != nil {
+		log.Printf("ERR: Error Add Team %s", err.Error())
 		return &pb.InsertResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Team %s Saved for the Event %s", in.Id, in.EventTag)
 	return &pb.InsertResponse{Message: result}, nil
 }
 
 func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventResponse, error) {
 	result, err := s.store.GetEvents()
 	if err != nil {
+		log.Printf("ERR: Error Get Events %s", err.Error())
 		return &pb.GetEventResponse{ErrorMessage: err.Error()}, nil
 	}
 
@@ -66,7 +70,7 @@ func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventRespon
 			FinishedAt:         e.FinishedAt,
 		})
 	}
-
+	log.Printf("Get Events")
 	return &pb.GetEventResponse{Events: events}, nil
 
 }
@@ -74,13 +78,14 @@ func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventRespon
 func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) (*pb.GetEventTeamsResponse, error) {
 	result, err := s.store.GetTeams(in.EventTag)
 	if err != nil {
+		log.Printf("ERR: Error Get teams for Event %s : %s", in.EventTag, err.Error())
 		return &pb.GetEventTeamsResponse{ErrorMessage: err.Error()}, nil
 	}
 
 	var teams []*pb.GetEventTeamsResponse_Teams
 	for _, t := range result {
 		teams = append(teams, &pb.GetEventTeamsResponse_Teams{
-			Id:               t.Id,
+			Id:               t.Tag,
 			Email:            t.Email,
 			Name:             t.Name,
 			HashPassword:     t.Password,
@@ -89,42 +94,46 @@ func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) 
 			SolvedChallenges: t.SolvedChallenges,
 		})
 	}
-
+	log.Printf("Get Teams for the Event %s", in.EventTag)
 	return &pb.GetEventTeamsResponse{Teams: teams}, nil
 }
 
 func (s server) UpdateEventFinishDate(ctx context.Context, in *pb.UpdateEventRequest) (*pb.UpdateResponse, error) {
 	result, err := s.store.UpdateEventFinishDate(in)
 	if err != nil {
+		log.Printf("ERR: Error Update Event %s finish time: %s", in.EventId, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Event %s Stopped", in.EventId)
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
 func (s server) UpdateTeamSolvedChallenge(ctx context.Context, in *pb.UpdateTeamSolvedChallengeRequest) (*pb.UpdateResponse, error) {
 	result, err := s.store.UpdateTeamSolvedChallenge(in)
 	if err != nil {
+		log.Printf("ERR: Error Update team %s solve challenge: %s", in.TeamId, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
+	log.Printf("Team %s solved %s challenge", in.TeamId, in.Tag)
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
 func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastAccessRequest) (*pb.UpdateResponse, error) {
 	result, err := s.store.UpdateTeamLastAccess(in)
 	if err != nil {
+		log.Printf("ERR: Error Update team %s last access: %s", in.TeamId, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
-func GetCreds() (credentials.TransportCredentials,error) {
+func GetCreds(conf *model.Config) (credentials.TransportCredentials,error) {
 	log.Printf("Preparing credentials for RPC")
-	// todo: change environment variables into configuration
-	// add handling functionality
+
 	certificateProps := certificate{
-		cPath:    			os.Getenv("CERT"),
-		cKeyPath: 			os.Getenv("CERT_KEY"),
-		caPath:             os.Getenv("CA"),
+		cPath:    			conf.TLS.CertFile,
+		cKeyPath: 			conf.TLS.CertKey,
+		caPath:             conf.TLS.CAFile,
 	}
 
 	certificate, err := tls.LoadX509KeyPair(certificateProps.cPath, certificateProps.cKeyPath)
@@ -154,15 +163,15 @@ func GetCreds() (credentials.TransportCredentials,error) {
 	return creds, nil
 }
 
-func (s server) GrpcOpts() ([]grpc.ServerOption, error) {
+func (s server) GrpcOpts(conf *model.Config) ([]grpc.ServerOption, error) {
 
-	if s.tls {
-		creds, err := GetCreds()
+	if conf.TLS.Enabled {
+		creds, err := GetCreds(conf)
 
 		if err != nil {
 			return []grpc.ServerOption{}, errors.New("Error on retrieving certificates: "+err.Error())
 		}
-		log.Println("Server is running in secure mode !")
+		log.Printf("Server is running in secure mode !")
 		return []grpc.ServerOption{grpc.Creds(creds)}, nil
 	}
 	return []grpc.ServerOption{}, nil
@@ -191,41 +200,62 @@ func (s server) GetGRPCServer(opts ...grpc.ServerOption) *grpc.Server {
 	return grpc.NewServer(opts...)
 }
 
-func readContent(path string) error {
-	cont, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-	_, err = io.Copy(os.Stdout, cont)
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-	return nil
-}
+func InitilizegRPCServer(conf *model.Config) (*server, error) {
 
-
-
-func InitilizegRPCServer() *server {
-
-	store, err := database.NewStore()
+	store, err := database.NewStore(conf)
 
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
-	}
-	// todo: change handling of tls, the example below not good enough
-
-	tls := true
-	mode := os.Getenv("SSL_OFF")
-	if strings.ToLower(mode) == "true" {
-		tls = false
+		return nil, err
 	}
 
 	s := &server{
 		store:   store,
-		auth:    NewAuthenticator(os.Getenv("SIGNIN_KEY")),
-		tls:     tls,
+		auth:    NewAuthenticator(conf.SigninKey, conf.AuthKey),
+		tls:     conf.TLS.Enabled,
 	}
-	return s
+	return s, nil
+}
+
+func NewConfigFromFile(path string) (*model.Config, error) {
+	f, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var c model.Config
+	err = yaml.Unmarshal(f, &c)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.Host == "" {
+		log.Println("Host not provided in the configuration file")
+		c.Host = "localhost:50051"
+	}
+
+	if c.SigninKey == "" {
+		log.Println("SigninKey not provided in the configuration file")
+		c.Host = "dev-env"
+	}
+
+	if c.AuthKey == "" {
+		log.Println("AuthKey not provided in the configuration file")
+		c.Host = "development-environment"
+	}
+
+	if c.DB.Host == "" || c.DB.User == "" || c.DB.Pass == "" || c.DB.Name == "" {
+		return nil, errors.New("DB paramenters missing in the configuration file")
+	}
+
+	if c.DB.Port == 0 {
+		c.DB.Port = 5432
+	}
+
+	if c.TLS.Enabled {
+		if c.TLS.CAFile == "" || c.TLS.CertKey == "" || c.TLS.CertFile == "" {
+			return nil, errors.New("Provide Certificates in the config file")
+		}
+	}
+
+	return &c, nil
 }

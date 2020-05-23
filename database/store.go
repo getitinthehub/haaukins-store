@@ -9,11 +9,12 @@ import (
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	_ "github.com/lib/pq"
 	"log"
-	"os"
-	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
+
+const handleNullConversionError = "converting NULL to string is unsupported"
 
 var (
 	timeFormat = "2006-01-02 15:04:05"
@@ -35,36 +36,26 @@ type Store interface {
 	UpdateEventFinishDate(*pb.UpdateEventRequest) (string, error)
 }
 
-func NewStore() (Store, error) {
-	db, err := NewDBConnection()
+func NewStore(conf *model.Config) (Store, error) {
+	db, err := NewDBConnection(conf)
 
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
+		return nil, err
 	}
 	err = InitTables(db)
 	if err != nil {
 		log.Printf("failed to init tables: %v", err)
+		return nil, err
 	}
 	return &store{db: db}, nil
 }
 
-func NewDBConnection() (*sql.DB, error) {
-
-	// todo: optimize this approach, looks ugly
-	host := os.Getenv("DATABASE_HOST")
-	portString := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("POSTGRES_USER")
-	dbPassword := os.Getenv("POSTGRES_PASSWORD")
-	dbName := os.Getenv("POSTGRES_DB")
-
-	port, err := strconv.Atoi(portString)
-	if err != nil {
-		return nil, err
-	}
+func NewDBConnection(conf *model.Config) (*sql.DB, error) {
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		host, port, dbUser, dbPassword, dbName)
+		conf.DB.Host, conf.DB.Port, conf.DB.User, conf.DB.Pass, conf.DB.Name)
 	db, err := sql.Open("postgres", psqlInfo)
 
 	if err != nil {
@@ -78,7 +69,7 @@ func NewDBConnection() (*sql.DB, error) {
 	return db, nil
 }
 
-func (s store) AddEvent(in *pb.AddEventRequest) (string, error) {
+func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -90,95 +81,78 @@ func (s store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	return "Event correctly added!", nil
 }
 
-func (s store) AddTeam(in *pb.AddTeamRequest) (string, error) {
+func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	now := time.Now()
 	nowString := now.Format(timeFormat)
-	_, err := s.db.Exec(ADD_TEAM_QUERY, in.Id, in.EventTag, in.Email, in.Name, in.Password, nowString, nowString, "[]")
+
+	var eventId int
+	if err := s.db.QueryRow(QUERY_EVENT_ID, in.EventTag).Scan(&eventId); err != nil {
+		return "", err
+	}
+
+	_, err := s.db.Exec(ADD_TEAM_QUERY, in.Id, eventId, in.Email, in.Name, in.Password, nowString, nowString, "[]")
 	if err != nil {
 		return "", err
 	}
 	return "Team correctly added!", nil
 }
 
-func (s store) GetEvents() ([]model.Event, error) {
+func (s *store) GetEvents() ([]model.Event, error) {
 
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	rows, err := s.db.Query(QUERY_EVENT_TABLE)
 	if err != nil {
-		return []model.Event{}, err
+		return nil, err
 	}
 	var events []model.Event
 	for rows.Next() {
 
-		// todo  : optimize this one, looks ugly
-		var tag string
-		var name string
-		var frontends string
-		var exercises string
-		var available uint
-		var capacity uint
-		var startedAt string
-		var expectedFinishTime string
-		var finishedAt string
-		rows.Scan(&tag, &name, &available, &capacity, &frontends, &exercises, &startedAt, &expectedFinishTime, &finishedAt)
-		events = append(events, model.Event{
-			Tag:                tag,
-			Name:               name,
-			Frontends:          frontends,
-			Exercises:          exercises,
-			Available:          available,
-			Capacity:           capacity,
-			StartedAt:          startedAt,
-			ExpectedFinishTime: expectedFinishTime,
-			FinishedAt:         finishedAt,
-		})
+		event := new(model.Event)
+		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Frontends,
+			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt)
+		if err != nil && !strings.Contains(err.Error(), handleNullConversionError){
+			return nil, err
+		}
+		events = append(events, *event)
 	}
 
 	return events, nil
 }
 
-func (s store) GetTeams(tag string) ([]model.Team, error) {
+func (s *store) GetTeams(tag string) ([]model.Team, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.db.Query(QUERY_EVENT_TEAMS, tag)
-	if err != nil {
-		return []model.Team{}, err
+	var eventId int
+	if err := s.db.QueryRow(QUERY_EVENT_ID, tag).Scan(&eventId); err != nil && !strings.Contains(err.Error(), "no rows in result set"){
+		return nil, err
 	}
 
-	// todo  : optimize this one, looks ugly
+	rows, err := s.db.Query(QUERY_EVENT_TEAMS, eventId)
+	if err != nil {
+		return nil, err
+	}
+
 	var teams []model.Team
 	for rows.Next() {
-		var id string
-		var eventTag string
-		var email string
-		var name string
-		var password string
-		var createdAt string
-		var lastAccess string
-		var solvedChallenges string
 
-		rows.Scan(&id, &eventTag, &email, &name, &password, &createdAt, &lastAccess, &solvedChallenges)
-		teams = append(teams, model.Team{
-			Id:               id,
-			EventTag:         eventTag,
-			Email:            email,
-			Name:             name,
-			Password:         password,
-			CreatedAt:        createdAt,
-			LastAccess:       lastAccess,
-			SolvedChallenges: solvedChallenges,
-		})
+		team := new(model.Team)
+		err := rows.Scan(&team.Id, &team.Tag ,&team.EventId, &team.Email, &team.Name, &team.Password, &team.CreatedAt,
+			&team.LastAccess, &team.SolvedChallenges)
+		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
+			return nil, err
+		}
+		teams = append(teams, *team)
 	}
 	return teams, nil
 }
 
-func (s store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest) (string, error) {
+func (s *store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -219,7 +193,7 @@ func (s store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest
 	return OK, nil
 }
 
-func (s store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string, error) {
+func (s *store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -231,7 +205,7 @@ func (s store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string,
 	return OK, nil
 }
 
-func (s store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error) {
+func (s *store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
