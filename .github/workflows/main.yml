@@ -59,3 +59,6 @@ jobs:
           CERT: ./certs/localhost_50051.crt
           CERT_KEY: ./certs/localhost_50051.key
           CA: ./certs/haaukins-store.com.crt
+
+      - name: Teardown resources # more stuff could be added in the future
+        run : rm -rf config.yml
