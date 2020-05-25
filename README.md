@@ -27,12 +27,15 @@ Here is the information which should be included into `.env` file:
 
 ```text
 CERTS_PATH=/scratch/configs/certs
+CONFIG_PATH=/scratch/configs/config.yml
 POSTGRES_DB=exampledb
 # POSTGRES_HOST_AUTH_METHOD="trust"
 POSTGRES_PASSWORD=exammplepassword
+
 ```
 
 - `CERTS_PATH` : Should be provided if TLS is enabled  and certificates should be valid for provided host in [config.yml](#config) file. 
+- `CONFIG_PATH`: Place to your `config.yml` file which is mount in `docker-compose.yml` file
 - `POSTGRES_DB`: This is the database information that you have provided in [config.yml](#config) file. 
 - `POSTGRES_HOST_AUTH_METHOD`: This parameter could be used for local developments however it is NOT recommended, because it eliminates authentication (no password for postgres connection)
 - `POSTGRES_PASSWORD`: Recommended way of running  haaukins store, should be same with the one in [config.yml](#config) file. 

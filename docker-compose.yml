@@ -12,7 +12,7 @@ services:
       - postgres-db
     volumes:
       - ${CERTS_PATH}:/certs:ro  # in production, change this CERTS_PATH to your certificate files folder
-      - ${CONFIG_PATH}:/haaukins/config.yml:ro  # mount config file
+      - ${CONFIG_PATH}:/config.yml:ro  # mount config file
     networks:
       - internal
 
