@@ -4,4 +4,6 @@ certs
 .git
 tests
 docker-compose.yml
+data
 config.yml
+

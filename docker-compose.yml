@@ -24,8 +24,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - database_postgres:/var/lib/postgresql/data
-      - ${CONFIG_PATH}:/haaukins/config.yml:ro # mount to config file
+      - ./data:/var/lib/postgresql/data
     networks:
       - internal
 
@@ -48,8 +47,6 @@ services:
 #     logging:
 #       driver: none # disable logs for this service
 
-volumes:
-  database_postgres:
 
 # Networks to be created to facilitate communication between containers
 networks:

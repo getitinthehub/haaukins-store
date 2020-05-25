@@ -10,3 +10,4 @@
 .env_test
 certs
 config.yml
+data
