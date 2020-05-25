@@ -12,6 +12,7 @@ services:
       - postgres-db
     volumes:
       - ${CERTS_PATH}:/certs:ro  # in production, change this CERTS_PATH to your certificate files folder
+      - ${CONFIG_PATH}:/haaukins/config.yml:ro  # mount config file
     networks:
       - internal
 
@@ -46,8 +47,6 @@ services:
 #     logging:
 #       driver: none # disable logs for this service
 
-volumes:
-  database_postgres:
 
 # Networks to be created to facilitate communication between containers
 networks:
