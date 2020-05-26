@@ -27,4 +27,4 @@ jobs:
           name: aaunetworksecurity/haaukins-store
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_H_PASSWORD }}
-          tag_semver: true
+          tag_names: true
