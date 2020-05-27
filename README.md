@@ -9,6 +9,23 @@ However, we have some local data which consists of configuration files which are
 - `frontends.yml` : Provides overall information about frontend which is used in Haaukins, frontends are instances in this context, like `Kali`, `Parrot`, `Ubuntu`.
 - `users.yml` : Have information about users who have access to administrator side of Haaukins. 
 
+
+## Production usage
+
+Docker image of haaukins store could be used in any docker compose file if environment variables provided correctly. When using in production, you can specify image address instead of building it fromm source code. 
+
+Haaukins store image with recent changes will be available at docker hub, with released tag. 
+
+No need to clone the repository, make sure that `.env`  and `config.yml` files are set correctly. 
+
+Steps to run it in production: 
+
+ - Make sure you have configured `.env` and `config.yml` according to the instructions in [configuration](#configuration) section.
+ - `curl -o docker-compose.yml https://raw.githubusercontent.com/aau-network-security/haaukins-store/master/docker-compose.yml`
+ - Change [`build: .`](https://github.com/aau-network-security/haaukins-store/blob/d41b09f9aecbec5bb0d6cb687ba9bb6bb8e24378/docker-compose.yml#L7) into  `image: aaunetworksecurity/haaukins-store:<release-tag>` 
+ - If everything works as expected, you have recent changes in your server. 
+ 
+ 
 ##  Configuration 
 
 Haaukins store uses two crucial configuration files which are namely, [`.env`](#environment-file) for [docker-compose.yml](https://github.com/aau-network-security/haaukins-store/blob/master/docker-compose.yml) and `config.yml` for retrieving some information in gRPC server side. 
@@ -39,6 +56,7 @@ POSTGRES_PASSWORD=exammplepassword
 - `POSTGRES_DB`: This is the database information that you have provided in [config.yml](#config) file. 
 - `POSTGRES_HOST_AUTH_METHOD`: This parameter could be used for local developments however it is NOT recommended, because it eliminates authentication (no password for postgres connection)
 - `POSTGRES_PASSWORD`: Recommended way of running  haaukins store, should be same with the one in [config.yml](#config) file. 
+- `POSTGRES_USER`: Could be useful to have, should be same with `db.user` parameter in [config.yml](#config) file
 
 Note that there could be cases where password is not required, in those cases `POSTGRES_HOST_AUTH_METHOD` could be used. However when you are using it, you do NOT need to provide `POSTGRES_PASSWORD`. 
 
