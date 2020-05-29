@@ -6,26 +6,27 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+
 	"github.com/aau-network-security/haaukins-store/database"
 	"github.com/aau-network-security/haaukins-store/model"
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"log"
 )
 
 type server struct {
-	store   database.Store
-	auth    Authenticator
-	tls     bool
+	store database.Store
+	auth  Authenticator
+	tls   bool
 }
 
 type certificate struct {
-	cPath 		string
-	cKeyPath  	string
-	caPath		string
+	cPath    string
+	cKeyPath string
+	caPath   string
 }
 
 func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.InsertResponse, error) {
@@ -68,11 +69,33 @@ func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventRespon
 			StartedAt:          e.StartedAt,
 			ExpectedFinishTime: e.ExpectedFinishTime,
 			FinishedAt:         e.FinishedAt,
+			Status:             e.Status,
 		})
 	}
 	log.Printf("Get Events")
 	return &pb.GetEventResponse{Events: events}, nil
+}
 
+func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest) (*pb.EventStatus, error) {
+	result, err := s.store.GetEventStatus(in)
+	if err != nil {
+		return &pb.EventStatus{Status: "Error on getting status of event " + err.Error()}, err
+	}
+	log.Printf("Event status returned ! [Status: %s , Event: %s] ", result, in.EventTag)
+	return &pb.EventStatus{Status: result}, nil
+
+}
+
+func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest) (*pb.EventStatus, error) {
+	log.Printf("Set event status for event %s to %s", in.EventTag, in.Status)
+	result, err := s.store.SetEventStatus(in)
+	if err != nil {
+		return &pb.EventStatus{Status: err.Error()}, err
+	}
+
+	log.Printf("Event status updated ! [Status: %s , Event: %s] ", result, in.EventTag)
+
+	return &pb.EventStatus{Status: result}, nil
 }
 
 func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) (*pb.GetEventTeamsResponse, error) {
@@ -127,18 +150,18 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
-func GetCreds(conf *model.Config) (credentials.TransportCredentials,error) {
+func GetCreds(conf *model.Config) (credentials.TransportCredentials, error) {
 	log.Printf("Preparing credentials for RPC")
 
 	certificateProps := certificate{
-		cPath:    			conf.TLS.CertFile,
-		cKeyPath: 			conf.TLS.CertKey,
-		caPath:             conf.TLS.CAFile,
+		cPath:    conf.TLS.CertFile,
+		cKeyPath: conf.TLS.CertKey,
+		caPath:   conf.TLS.CAFile,
 	}
 
 	certificate, err := tls.LoadX509KeyPair(certificateProps.cPath, certificateProps.cKeyPath)
 	if err != nil {
-		return nil,fmt.Errorf("could not load server key pair: %s", err)
+		return nil, fmt.Errorf("could not load server key pair: %s", err)
 	}
 
 	// Create a certificate pool from the certificate authority
@@ -169,7 +192,7 @@ func (s server) GrpcOpts(conf *model.Config) ([]grpc.ServerOption, error) {
 		creds, err := GetCreds(conf)
 
 		if err != nil {
-			return []grpc.ServerOption{}, errors.New("Error on retrieving certificates: "+err.Error())
+			return []grpc.ServerOption{}, errors.New("Error on retrieving certificates: " + err.Error())
 		}
 		log.Printf("Server is running in secure mode !")
 		return []grpc.ServerOption{grpc.Creds(creds)}, nil
@@ -209,9 +232,9 @@ func InitilizegRPCServer(conf *model.Config) (*server, error) {
 	}
 
 	s := &server{
-		store:   store,
-		auth:    NewAuthenticator(conf.SigninKey, conf.AuthKey),
-		tls:     conf.TLS.Enabled,
+		store: store,
+		auth:  NewAuthenticator(conf.SigninKey, conf.AuthKey),
+		tls:   conf.TLS.Enabled,
 	}
 	return s, nil
 }

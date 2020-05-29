@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/aau-network-security/haaukins-store/model"
-	pb "github.com/aau-network-security/haaukins-store/proto"
-	_ "github.com/lib/pq"
 	"log"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/aau-network-security/haaukins-store/model"
+	pb "github.com/aau-network-security/haaukins-store/proto"
+	_ "github.com/lib/pq"
 )
 
 const handleNullConversionError = "converting NULL to string is unsupported"
@@ -31,6 +32,8 @@ type Store interface {
 	AddTeam(*pb.AddTeamRequest) (string, error)
 	GetEvents() ([]model.Event, error)
 	GetTeams(string) ([]model.Team, error)
+	GetEventStatus(*pb.GetEventStatusRequest) (string, error)
+	SetEventStatus(*pb.SetEventStatusRequest) (string, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
 	UpdateTeamLastAccess(*pb.UpdateTeamLastAccessRequest) (string, error)
 	UpdateEventFinishDate(*pb.UpdateEventRequest) (string, error)
@@ -73,7 +76,7 @@ func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec(ADD_EVENT_QUERY, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Exercises, in.StartTime, in.ExpectedFinishTime)
+	_, err := s.db.Exec(ADD_EVENT_QUERY, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, in.StartTime, in.ExpectedFinishTime)
 
 	if err != nil {
 		return "", err
@@ -113,9 +116,9 @@ func (s *store) GetEvents() ([]model.Event, error) {
 	for rows.Next() {
 
 		event := new(model.Event)
-		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Frontends,
+		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
 			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt)
-		if err != nil && !strings.Contains(err.Error(), handleNullConversionError){
+		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
 			return nil, err
 		}
 		events = append(events, *event)
@@ -129,7 +132,7 @@ func (s *store) GetTeams(tag string) ([]model.Team, error) {
 	defer s.m.Unlock()
 
 	var eventId int
-	if err := s.db.QueryRow(QUERY_EVENT_ID, tag).Scan(&eventId); err != nil && !strings.Contains(err.Error(), "no rows in result set"){
+	if err := s.db.QueryRow(QUERY_EVENT_ID, tag).Scan(&eventId); err != nil && !strings.Contains(err.Error(), "no rows in result set") {
 		return nil, err
 	}
 
@@ -142,7 +145,7 @@ func (s *store) GetTeams(tag string) ([]model.Team, error) {
 	for rows.Next() {
 
 		team := new(model.Team)
-		err := rows.Scan(&team.Id, &team.Tag ,&team.EventId, &team.Email, &team.Name, &team.Password, &team.CreatedAt,
+		err := rows.Scan(&team.Id, &team.Tag, &team.EventId, &team.Email, &team.Name, &team.Password, &team.CreatedAt,
 			&team.LastAccess, &team.SolvedChallenges)
 		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
 			return nil, err
@@ -215,4 +218,31 @@ func (s *store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error)
 	}
 
 	return OK, nil
+}
+
+func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (string, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	var status string
+	if err := s.db.QueryRow(QUERY_EVENT_STATUS, in.EventTag).Scan(&status); err != nil {
+		return "", err
+	}
+
+	log.Printf("Status for event: %s, event: %s \n", status, in.EventTag)
+
+	return status, nil
+
+}
+
+func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (string, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	_, err := s.db.Exec(UPDATE_EVENT_STATUS, in.EventTag, in.Status)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("Status updated for event: %s, status: %s \n", in.EventTag, in.Status)
+
+	return "Status for " + in.EventTag + " updated to " + in.Status + " !", nil
 }
