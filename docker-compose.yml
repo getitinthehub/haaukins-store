@@ -17,7 +17,7 @@ services:
       - internal
 
   postgres-db:
-    image: postgres:latest
+    image: postgres:alpine
     container_name: postgres
     env_file:
       - .env
