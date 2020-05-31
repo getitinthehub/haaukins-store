@@ -8,7 +8,7 @@ type Event struct {
 	Exercises          string
 	Available          uint
 	Capacity           uint
-	Status             string
+	Status             int32
 	StartedAt          string
 	ExpectedFinishTime string
 	FinishedAt         string

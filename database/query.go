@@ -7,7 +7,7 @@ var (
 		"name varchar (150), " +
 		"available integer, " +
 		"capacity integer, " +
-		"status text, " +
+		"status integer, " +
 		"frontends text, " +
 		"exercises text, " +
 		"started_at varchar (100), " +

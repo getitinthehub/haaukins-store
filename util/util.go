@@ -29,6 +29,15 @@ type certificate struct {
 	caPath   string
 }
 
+var (
+	Running   = State(0)
+	Booked    = State(1) // todo: will be added
+	Suspended = State(2)
+	Error     = State(3)
+)
+
+type State int32
+
 func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.InsertResponse, error) {
 	result, err := s.store.AddEvent(in)
 	if err != nil {
@@ -79,7 +88,7 @@ func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventRespon
 func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest) (*pb.EventStatus, error) {
 	result, err := s.store.GetEventStatus(in)
 	if err != nil {
-		return &pb.EventStatus{Status: "Error on getting status of event " + err.Error()}, err
+		return &pb.EventStatus{Status: int32(Error)}, err
 	}
 	log.Printf("Event status returned ! [Status: %s , Event: %s] ", result, in.EventTag)
 	return &pb.EventStatus{Status: result}, nil
@@ -90,7 +99,7 @@ func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest
 	log.Printf("Set event status for event %s to %s", in.EventTag, in.Status)
 	result, err := s.store.SetEventStatus(in)
 	if err != nil {
-		return &pb.EventStatus{Status: err.Error()}, err
+		return &pb.EventStatus{Status: int32(Error)}, err
 	}
 
 	log.Printf("Event status updated ! [Status: %s , Event: %s] ", result, in.EventTag)

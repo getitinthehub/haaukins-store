@@ -20,6 +20,7 @@ const handleNullConversionError = "converting NULL to string is unsupported"
 var (
 	timeFormat = "2006-01-02 15:04:05"
 	OK         = "ok"
+	Error      = int32(3)
 )
 
 type store struct {
@@ -32,8 +33,8 @@ type Store interface {
 	AddTeam(*pb.AddTeamRequest) (string, error)
 	GetEvents() ([]model.Event, error)
 	GetTeams(string) ([]model.Team, error)
-	GetEventStatus(*pb.GetEventStatusRequest) (string, error)
-	SetEventStatus(*pb.SetEventStatusRequest) (string, error)
+	GetEventStatus(*pb.GetEventStatusRequest) (int32, error)
+	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
 	UpdateTeamLastAccess(*pb.UpdateTeamLastAccessRequest) (string, error)
 	UpdateEventFinishDate(*pb.UpdateEventRequest) (string, error)
@@ -220,13 +221,13 @@ func (s *store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error)
 	return OK, nil
 }
 
-func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (string, error) {
+func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (int32, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	var status string
+	var status int32
 	if err := s.db.QueryRow(QUERY_EVENT_STATUS, in.EventTag).Scan(&status); err != nil {
-		return "", err
+		return Error, err
 	}
 
 	log.Printf("Status for event: %s, event: %s \n", status, in.EventTag)
@@ -235,14 +236,14 @@ func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (string, error) {
 
 }
 
-func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (string, error) {
+func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	_, err := s.db.Exec(UPDATE_EVENT_STATUS, in.EventTag, in.Status)
 	if err != nil {
-		return "", err
+		return Error, err
 	}
 	log.Printf("Status updated for event: %s, status: %s \n", in.EventTag, in.Status)
 
-	return "Status for " + in.EventTag + " updated to " + in.Status + " !", nil
+	return in.Status, nil
 }
