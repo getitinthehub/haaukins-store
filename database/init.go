@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+
 	_ "github.com/lib/pq"
 )
 
@@ -25,5 +26,5 @@ func createTables(db *sql.DB) (string, error) {
 		return "", err
 	}
 
-	return "ok", nil
+	return OK, nil
 }
