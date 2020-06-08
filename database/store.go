@@ -21,7 +21,13 @@ var (
 	timeFormat = "2006-01-02 15:04:05"
 	OK         = "ok"
 	Error      = int32(3)
+
+	Running   = State(0)
+	Suspended = State(1)
+	Booked    = State(2)
 )
+
+type State int32
 
 type store struct {
 	m  sync.Mutex
@@ -31,8 +37,9 @@ type store struct {
 type Store interface {
 	AddEvent(*pb.AddEventRequest) (string, error)
 	AddTeam(*pb.AddTeamRequest) (string, error)
-	GetEvents() ([]model.Event, error)
+	GetEvents(*pb.GetEventRequest) ([]model.Event, error)
 	GetTeams(string) ([]model.Team, error)
+
 	GetEventStatus(*pb.GetEventStatusRequest) (int32, error)
 	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
@@ -104,15 +111,40 @@ func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 	return "Team correctly added!", nil
 }
 
-func (s *store) GetEvents() ([]model.Event, error) {
-
+func (s *store) GetEvents(in *pb.GetEventRequest) ([]model.Event, error) {
+	var rows *sql.Rows
+	var err error
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.db.Query(QueryEventTable)
-	if err != nil {
-		return nil, err
+	switch in.Status {
+
+	case int32(Running):
+		// query only running events
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Running))
+		if err != nil {
+			return nil, fmt.Errorf("query running events err %v", err)
+		}
+	case int32(Suspended):
+		// query only suspended events
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Suspended))
+		if err != nil {
+			return nil, fmt.Errorf("query suspended events err %v", err)
+		}
+	case int32(Booked):
+		// query only booked events
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Booked))
+		if err != nil {
+			return nil, fmt.Errorf("query boooked events err %v", err)
+		}
+	default:
+		// all events
+		rows, err = s.db.Query(QueryEventTable)
+		if err != nil {
+			return nil, fmt.Errorf("query running events err %v", err)
+		}
 	}
+
 	var events []model.Event
 	for rows.Next() {
 
@@ -247,3 +279,26 @@ func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 
 	return in.Status, nil
 }
+
+//
+//func (s *store) GetEventsByStatus () ([]model.Event, error) {
+//	s.m.Lock()
+//	defer s.m.Unlock()
+//
+//	rows, err := s.db.Exec(QueryEventsByStatus,)
+//	if err != nil {
+//		return nil, err
+//	}
+//	var events []model.Event
+//	for rows.Next() {
+//		event := new(model.Event)
+//		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
+//			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt)
+//		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
+//			return nil, err
+//		}
+//		events = append(events, *event)
+//	}
+//
+//	return events, nil
+//}

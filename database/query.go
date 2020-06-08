@@ -42,5 +42,6 @@ var (
 	QueryEventId    = "SELECT id FROM event WHERE tag=$1 and finished_at is null"
 	QueryEventTeams = "SELECT * FROM team WHERE event_id=$1"
 
-	QueryEventStatus = "SELECT status FROM event WHERE tag=$1"
+	QueryEventStatus    = "SELECT status FROM event WHERE tag=$1"
+	QueryEventsByStatus = "SELECT * FROM event WHERE status=$1"
 )
