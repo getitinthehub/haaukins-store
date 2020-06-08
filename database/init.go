@@ -17,12 +17,12 @@ func InitTables(db *sql.DB) error {
 func createTables(db *sql.DB) (string, error) {
 
 	//Create Event Table
-	if _, err := db.Query(CREATE_EVENT_TABLE); err != nil {
+	if _, err := db.Query(CreateEventTable); err != nil {
 		return "", err
 	}
 
 	//Create Teams Table
-	if _, err := db.Query(CREATE_TEAMS_TABLE); err != nil {
+	if _, err := db.Query(CreateTeamsTable); err != nil {
 		return "", err
 	}
 
