@@ -5,34 +5,34 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
+
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"github.com/dgrijalva/jwt-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
-	"io/ioutil"
-	"os"
-	"testing"
 )
 
 const (
-	AUTH_KEY = "au"
+	AUTH_KEY       = "au"
 	AUTH_KEY_VALUE = "authkey"
-	SIGNIN_VALUE = "signkey"
-	HOST = "localhost:50051"
+	SIGNIN_VALUE   = "signkey"
+	HOST           = "localhost:50051"
 )
 
 var (
 	testCertPath    = os.Getenv("CERT")
 	testCertKeyPath = os.Getenv("CERT_KEY")
-	testCAPath 		= os.Getenv("CA")
+	testCAPath      = os.Getenv("CA")
 )
 
 type Creds struct {
 	Token    string
 	Insecure bool
 }
-
 
 func (c Creds) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
 	return map[string]string{
@@ -88,7 +88,7 @@ func TestStoreConnection(t *testing.T) {
 
 			// Append the certificates from the CA
 			if ok := certPool.AppendCertsFromPEM(ca); !ok {
-				 t.Fatalf("failed to append ca certs")
+				t.Fatalf("failed to append ca certs")
 			}
 
 			creds := credentials.NewTLS(&tls.Config{
@@ -135,7 +135,7 @@ func TestStoreConnection(t *testing.T) {
 	}
 }
 
-func createTestClientConn() (*grpc.ClientConn, error){
+func createTestClientConn() (*grpc.ClientConn, error) {
 
 	tokenCorret := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		AUTH_KEY: AUTH_KEY_VALUE,
@@ -185,7 +185,7 @@ func createTestClientConn() (*grpc.ClientConn, error){
 	return conn, nil
 }
 
-func TestAddEvent(t *testing.T){
+func TestAddEvent(t *testing.T) {
 	t.Log("Testing AddEvent and GetEvents functions")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -195,22 +195,21 @@ func TestAddEvent(t *testing.T){
 	c := pb.NewStoreClient(conn)
 
 	req := pb.AddEventRequest{
-		Name: 				"Test",
-		Tag: 				"test",
-		Frontends:			"kali",
-		Exercises: 			"ftp,xss",
-		Available: 			1,
-		Capacity: 			2,
-		StartTime:  		"2020-05-20 14:35:01",
+		Name:               "Test",
+		Tag:                "test",
+		Frontends:          "kali",
+		Exercises:          "ftp,xss",
+		Available:          1,
+		Capacity:           2,
+		StartTime:          "2020-05-20 14:35:01",
 		ExpectedFinishTime: "2020-05-21 14:35:01",
-
 	}
 
 	_, err = c.AddEvent(context.Background(), &req)
 	if err != nil {
 		t.Fatal(err)
 	}
-	events, err := c.GetEvents(context.Background(), &pb.EmptyRequest{})
+	events, err := c.GetEvents(context.Background(), &pb.GetEventRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,18 +228,18 @@ func TestAddTeam(t *testing.T) {
 	c := pb.NewStoreClient(conn)
 
 	_, err = c.AddTeam(context.Background(), &pb.AddTeamRequest{
-		Id:                   "team1",
-		EventTag:             "test",
-		Email:                "team1@test.dk",
-		Name:                 "Team Test 1",
-		Password:             "password",
+		Id:       "team1",
+		EventTag: "test",
+		Email:    "team1@test.dk",
+		Name:     "Team Test 1",
+		Password: "password",
 	})
 	if err != nil {
 		t.Fatal()
 	}
 
 	teams, err := c.GetEventTeams(context.Background(), &pb.GetEventTeamsRequest{
-		EventTag:             "test",
+		EventTag: "test",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -250,7 +249,7 @@ func TestAddTeam(t *testing.T) {
 	}
 }
 
-func TestTeamSolveChallenge(t *testing.T){
+func TestTeamSolveChallenge(t *testing.T) {
 	t.Log("Testing UpdateTeamSolvedChallenge function")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -260,17 +259,16 @@ func TestTeamSolveChallenge(t *testing.T){
 	c := pb.NewStoreClient(conn)
 
 	_, err = c.UpdateTeamSolvedChallenge(context.Background(), &pb.UpdateTeamSolvedChallengeRequest{
-		TeamId:               "team1",
-		Tag:                  "ftp",
-		CompletedAt:          "2020-05-21 12:35:01",
-
+		TeamId:      "team1",
+		Tag:         "ftp",
+		CompletedAt: "2020-05-21 12:35:01",
 	})
 	if err != nil {
 		t.Fatalf("Error updating the solved challenges: %s", err.Error())
 	}
 }
 
-func TestTeamUpdateLastAccess(t *testing.T){
+func TestTeamUpdateLastAccess(t *testing.T) {
 	t.Log("Testing UpdateTeamLastAccess function")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -280,8 +278,8 @@ func TestTeamUpdateLastAccess(t *testing.T){
 	c := pb.NewStoreClient(conn)
 
 	_, err = c.UpdateTeamLastAccess(context.Background(), &pb.UpdateTeamLastAccessRequest{
-		TeamId:               "team1",
-		AccessAt:             "2020-05-21 12:35:01",
+		TeamId:   "team1",
+		AccessAt: "2020-05-21 12:35:01",
 	})
 	if err != nil {
 		t.Fatalf("Error updating team last access: %s", err.Error())
@@ -306,7 +304,7 @@ func TestCloseEvent(t *testing.T) {
 	}
 }
 
-func TestMultipleEventWithSameTag(t *testing.T){
+func TestMultipleEventWithSameTag(t *testing.T) {
 	t.Log("Testing Multiple Events with same Tags")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -316,15 +314,14 @@ func TestMultipleEventWithSameTag(t *testing.T){
 	c := pb.NewStoreClient(conn)
 
 	req := pb.AddEventRequest{
-		Name: 				"Test2",
-		Tag: 				"test",
-		Frontends:			"kali",
-		Exercises: 			"ftp,xss,wc,jwt",
-		Available: 			1,
-		Capacity: 			2,
-		StartTime:  		"2020-06-20 14:35:01",
+		Name:               "Test2",
+		Tag:                "test",
+		Frontends:          "kali",
+		Exercises:          "ftp,xss,wc,jwt",
+		Available:          1,
+		Capacity:           2,
+		StartTime:          "2020-06-20 14:35:01",
 		ExpectedFinishTime: "2020-06-21 14:35:01",
-
 	}
 
 	_, err = c.AddEvent(context.Background(), &req)
@@ -333,18 +330,18 @@ func TestMultipleEventWithSameTag(t *testing.T){
 	}
 
 	_, err = c.AddTeam(context.Background(), &pb.AddTeamRequest{
-		Id:                   "team1",
-		EventTag:             "test",
-		Email:                "team1@test.dk",
-		Name:                 "Team Test 1",
-		Password:             "password",
+		Id:       "team1",
+		EventTag: "test",
+		Email:    "team1@test.dk",
+		Name:     "Team Test 1",
+		Password: "password",
 	})
 	if err != nil {
 		t.Fatal()
 	}
 
 	teams, err := c.GetEventTeams(context.Background(), &pb.GetEventTeamsRequest{
-		EventTag:             "test",
+		EventTag: "test",
 	})
 	if err != nil {
 		t.Fatal(err)
