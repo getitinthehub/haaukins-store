@@ -111,7 +111,7 @@ func TestStoreConnection(t *testing.T) {
 
 			c := pb.NewStoreClient(conn)
 
-			_, err = c.GetEvents(context.Background(), &pb.EmptyRequest{})
+			_, err = c.GetEvents(context.Background(), &pb.GetEventRequest{})
 
 			if err != nil {
 				st, ok := status.FromError(err)
