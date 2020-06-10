@@ -21,7 +21,13 @@ var (
 	timeFormat = "2006-01-02 15:04:05"
 	OK         = "ok"
 	Error      = int32(3)
+
+	Running   = State(0)
+	Suspended = State(1)
+	Booked    = State(2)
 )
+
+type State int32
 
 type store struct {
 	m  sync.Mutex
@@ -31,8 +37,9 @@ type store struct {
 type Store interface {
 	AddEvent(*pb.AddEventRequest) (string, error)
 	AddTeam(*pb.AddTeamRequest) (string, error)
-	GetEvents() ([]model.Event, error)
+	GetEvents(*pb.GetEventRequest) ([]model.Event, error)
 	GetTeams(string) ([]model.Team, error)
+
 	GetEventStatus(*pb.GetEventStatusRequest) (int32, error)
 	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
@@ -77,7 +84,7 @@ func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec(ADD_EVENT_QUERY, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, in.StartTime, in.ExpectedFinishTime)
+	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, in.StartTime, in.ExpectedFinishTime)
 
 	if err != nil {
 		return "", err
@@ -93,26 +100,51 @@ func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 	nowString := now.Format(timeFormat)
 
 	var eventId int
-	if err := s.db.QueryRow(QUERY_EVENT_ID, in.EventTag).Scan(&eventId); err != nil {
+	if err := s.db.QueryRow(QueryEventId, in.EventTag).Scan(&eventId); err != nil {
 		return "", err
 	}
 
-	_, err := s.db.Exec(ADD_TEAM_QUERY, in.Id, eventId, in.Email, in.Name, in.Password, nowString, nowString, "[]")
+	_, err := s.db.Exec(AddTeamQuery, in.Id, eventId, in.Email, in.Name, in.Password, nowString, nowString, "[]")
 	if err != nil {
 		return "", err
 	}
 	return "Team correctly added!", nil
 }
 
-func (s *store) GetEvents() ([]model.Event, error) {
-
+func (s *store) GetEvents(in *pb.GetEventRequest) ([]model.Event, error) {
+	var rows *sql.Rows
+	var err error
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	rows, err := s.db.Query(QUERY_EVENT_TABLE)
-	if err != nil {
-		return nil, err
+	switch in.Status {
+
+	case int32(Running):
+		// query only running events
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Running))
+		if err != nil {
+			return nil, fmt.Errorf("query running events err %v", err)
+		}
+	case int32(Suspended):
+		// query only suspended events
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Suspended))
+		if err != nil {
+			return nil, fmt.Errorf("query suspended events err %v", err)
+		}
+	case int32(Booked):
+		// query only booked events
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Booked))
+		if err != nil {
+			return nil, fmt.Errorf("query boooked events err %v", err)
+		}
+	default:
+		// all events
+		rows, err = s.db.Query(QueryEventTable)
+		if err != nil {
+			return nil, fmt.Errorf("query running events err %v", err)
+		}
 	}
+
 	var events []model.Event
 	for rows.Next() {
 
@@ -133,11 +165,11 @@ func (s *store) GetTeams(tag string) ([]model.Team, error) {
 	defer s.m.Unlock()
 
 	var eventId int
-	if err := s.db.QueryRow(QUERY_EVENT_ID, tag).Scan(&eventId); err != nil && !strings.Contains(err.Error(), "no rows in result set") {
+	if err := s.db.QueryRow(QueryEventId, tag).Scan(&eventId); err != nil && !strings.Contains(err.Error(), "no rows in result set") {
 		return nil, err
 	}
 
-	rows, err := s.db.Query(QUERY_EVENT_TEAMS, eventId)
+	rows, err := s.db.Query(QueryEventTeams, eventId)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +200,7 @@ func (s *store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeReques
 	var solvedChallenges []Challenge
 	var solvedChallengesDB string
 
-	if err := s.db.QueryRow(QUERY_SOLVED_CHLS, in.TeamId).Scan(&solvedChallengesDB); err != nil {
+	if err := s.db.QueryRow(QuerySolvedChls, in.TeamId).Scan(&solvedChallengesDB); err != nil {
 		return "", err
 	}
 
@@ -189,7 +221,7 @@ func (s *store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeReques
 
 	newSolvedChallengesDB, _ := json.Marshal(solvedChallenges)
 
-	_, err := s.db.Exec(UPDATE_TEAM_SOLVED_CHL, in.TeamId, string(newSolvedChallengesDB))
+	_, err := s.db.Exec(UpdateTeamSolvedChl, in.TeamId, string(newSolvedChallengesDB))
 	if err != nil {
 		return "", err
 	}
@@ -201,7 +233,7 @@ func (s *store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec(UPDATE_EVENT_LASTACCESSED_DATE, in.TeamId, in.AccessAt)
+	_, err := s.db.Exec(UpdateEventLastaccessedDate, in.TeamId, in.AccessAt)
 	if err != nil {
 		return "", err
 	}
@@ -213,7 +245,7 @@ func (s *store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error)
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec(UPDATE_EVENT_FINISH_DATE, in.EventId, in.FinishedAt)
+	_, err := s.db.Exec(UpdateEventFinishDate, in.EventId, in.FinishedAt)
 	if err != nil {
 		return "", err
 	}
@@ -226,7 +258,7 @@ func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (int32, error) {
 	defer s.m.Unlock()
 
 	var status int32
-	if err := s.db.QueryRow(QUERY_EVENT_STATUS, in.EventTag).Scan(&status); err != nil {
+	if err := s.db.QueryRow(QueryEventStatus, in.EventTag).Scan(&status); err != nil {
 		return Error, err
 	}
 
@@ -239,7 +271,7 @@ func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (int32, error) {
 func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
-	_, err := s.db.Exec(UPDATE_EVENT_STATUS, in.EventTag, in.Status)
+	_, err := s.db.Exec(UpdateEventStatus, in.EventTag, in.Status)
 	if err != nil {
 		return Error, err
 	}
@@ -247,3 +279,26 @@ func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 
 	return in.Status, nil
 }
+
+//
+//func (s *store) GetEventsByStatus () ([]model.Event, error) {
+//	s.m.Lock()
+//	defer s.m.Unlock()
+//
+//	rows, err := s.db.Exec(QueryEventsByStatus,)
+//	if err != nil {
+//		return nil, err
+//	}
+//	var events []model.Event
+//	for rows.Next() {
+//		event := new(model.Event)
+//		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
+//			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt)
+//		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
+//			return nil, err
+//		}
+//		events = append(events, *event)
+//	}
+//
+//	return events, nil
+//}

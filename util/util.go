@@ -59,8 +59,8 @@ func (s server) AddTeam(ctx context.Context, in *pb.AddTeamRequest) (*pb.InsertR
 	return &pb.InsertResponse{Message: result}, nil
 }
 
-func (s server) GetEvents(context.Context, *pb.EmptyRequest) (*pb.GetEventResponse, error) {
-	result, err := s.store.GetEvents()
+func (s server) GetEvents(ctx context.Context, in *pb.GetEventRequest) (*pb.GetEventResponse, error) {
+	result, err := s.store.GetEvents(in)
 	if err != nil {
 		log.Printf("ERR: Error Get Events %s", err.Error())
 		return &pb.GetEventResponse{ErrorMessage: err.Error()}, nil
