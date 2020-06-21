@@ -18,7 +18,7 @@ import (
 const handleNullConversionError = "converting NULL to string is unsupported"
 
 var (
-	timeFormat = "2006-01-02 15:04:05"
+	TimeFormat = "2006-01-02 15:04:05"
 	OK         = "ok"
 	Error      = int32(3)
 
@@ -40,6 +40,7 @@ type Store interface {
 	GetEvents(*pb.GetEventRequest) ([]model.Event, error)
 	GetTeams(string) ([]model.Team, error)
 
+	GetCostsInTime() (map[string]int32, error)
 	GetEventStatus(*pb.GetEventStatusRequest) (int32, error)
 	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
@@ -84,7 +85,11 @@ func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, in.StartTime, in.ExpectedFinishTime)
+	startTime, _ := time.Parse(TimeFormat, in.StartTime)
+
+	expectedFinishTime, _ := time.Parse(TimeFormat, in.ExpectedFinishTime)
+
+	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, startTime, expectedFinishTime)
 
 	if err != nil {
 		return "", err
@@ -97,14 +102,13 @@ func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 	defer s.m.Unlock()
 
 	now := time.Now()
-	nowString := now.Format(timeFormat)
 
 	var eventId int
 	if err := s.db.QueryRow(QueryEventId, in.EventTag).Scan(&eventId); err != nil {
 		return "", err
 	}
 
-	_, err := s.db.Exec(AddTeamQuery, in.Id, eventId, in.Email, in.Name, in.Password, nowString, nowString, "[]")
+	_, err := s.db.Exec(AddTeamQuery, in.Id, eventId, in.Email, in.Name, in.Password, now, now, "[]")
 	if err != nil {
 		return "", err
 	}
@@ -188,6 +192,16 @@ func (s *store) GetTeams(tag string) ([]model.Team, error) {
 	return teams, nil
 }
 
+func (s *store) GetCostsInTime() (map[string]int32, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	m, err := calculateCost(s.db)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (s *store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -262,7 +276,7 @@ func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (int32, error) {
 		return Error, err
 	}
 
-	log.Printf("Status for event: %s, event: %s \n", status, in.EventTag)
+	log.Printf("Status for event: %d, event: %s \n", status, in.EventTag)
 
 	return status, nil
 
@@ -275,7 +289,7 @@ func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 	if err != nil {
 		return Error, err
 	}
-	log.Printf("Status updated for event: %s, status: %s \n", in.EventTag, in.Status)
+	log.Printf("Status updated for event: %s, status: %d \n", in.EventTag, in.Status)
 
 	return in.Status, nil
 }
