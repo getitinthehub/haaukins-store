@@ -6,11 +6,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	jwt "github.com/dgrijalva/jwt-go"
-	"google.golang.org/grpc/credentials"
 	"io/ioutil"
 	"log"
 	"time"
+
+	jwt "github.com/dgrijalva/jwt-go"
+	"google.golang.org/grpc/credentials"
 
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"google.golang.org/grpc"
@@ -47,7 +48,7 @@ func main() {
 	test_auth_key := "c41ec030-db76-473f-a504-5a7323aa04ec"
 	test_sign_key := "34b16c10-1a2c-4533-83e8-cfde78817501"
 	testCertPath := "/home/ubuntu/haaukins_main/configs/certs/localhost.crt"
-	testCertKeyPath:= "/home/ubuntu/haaukins_main/configs/certs/localhost.key"
+	testCertKeyPath := "/home/ubuntu/haaukins_main/configs/certs/localhost.key"
 	testCAPath := "/home/ubuntu/haaukins_main/configs/certs/haaukins-store.com.crt"
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -88,7 +89,7 @@ func main() {
 			RootCAs:      certPool,
 		})
 
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds),grpc.WithPerRPCCredentials(authCreds))
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(authCreds))
 
 	} else {
 		authCreds.Insecure = true
@@ -107,7 +108,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	r, err := c.GetEvents(ctx, &pb.EmptyRequest{})
+	r, err := c.GetEvents(ctx, &pb.GetEventRequest{})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
