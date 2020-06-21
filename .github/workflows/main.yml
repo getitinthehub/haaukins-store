@@ -37,7 +37,7 @@ jobs:
 
       - name: Download example config file
         run: |
-          curl -o config.yml https://gist.githubusercontent.com/mrturkmen06/cc5becf2d8413ea18c27a5bb2aa4106f/raw/7c95ab9747124766357eaf910834364acab7e897/config.yml
+          curl -o config.yml https://gist.githubusercontent.com/mrturkmencom/cc5becf2d8413ea18c27a5bb2aa4106f/raw/7c95ab9747124766357eaf910834364acab7e897/config.yml
 
       - name: Get dependencies
         run: |
