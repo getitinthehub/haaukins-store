@@ -107,6 +107,15 @@ func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest
 	return &pb.EventStatus{Status: result}, nil
 }
 
+func (s server) GetTimeSeries(ctx context.Context, r *pb.EmptyRequest) (*pb.GetTimeSeriesResponse, error) {
+	log.Printf("Calculating costs in timeline")
+	m, err := s.store.GetCostsInTime()
+	if err != nil {
+		return nil, fmt.Errorf("error on calculating costs %v", err)
+	}
+	return &pb.GetTimeSeriesResponse{Timeseries: m}, nil
+}
+
 func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) (*pb.GetEventTeamsResponse, error) {
 	result, err := s.store.GetTeams(in.EventTag)
 	if err != nil {
