@@ -54,7 +54,7 @@ jobs:
           ./server &
 
       - name: Run Tests
-        run: go test ./tests
+        run: go test -v ./...
         env:
           CERT: ./certs/localhost_50051.crt
           CERT_KEY: ./certs/localhost_50051.key
