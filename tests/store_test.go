@@ -202,6 +202,7 @@ func TestAddEvent(t *testing.T) {
 		Available:          1,
 		Capacity:           2,
 		StartTime:          "2020-05-20 14:35:01",
+		Status:             1,
 		ExpectedFinishTime: "2020-05-21 14:35:01",
 	}
 
@@ -319,6 +320,7 @@ func TestMultipleEventWithSameTag(t *testing.T) {
 		Frontends:          "kali",
 		Exercises:          "ftp,xss,wc,jwt",
 		Available:          1,
+		Status:             1,
 		Capacity:           2,
 		StartTime:          "2020-06-20 14:35:01",
 		ExpectedFinishTime: "2020-06-21 14:35:01",

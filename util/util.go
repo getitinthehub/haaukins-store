@@ -90,19 +90,19 @@ func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest
 	if err != nil {
 		return &pb.EventStatus{Status: int32(Error)}, err
 	}
-	log.Printf("Event status returned ! [Status: %s , Event: %s] ", result, in.EventTag)
+	log.Printf("Event status returned ! [Status: %d , Event: %s] ", result, in.EventTag)
 	return &pb.EventStatus{Status: result}, nil
 
 }
 
 func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest) (*pb.EventStatus, error) {
-	log.Printf("Set event status for event %s to %s", in.EventTag, in.Status)
+	log.Printf("Set event status for event %s to %d", in.EventTag, in.Status)
 	result, err := s.store.SetEventStatus(in)
 	if err != nil {
 		return &pb.EventStatus{Status: int32(Error)}, err
 	}
 
-	log.Printf("Event status updated ! [Status: %s , Event: %s] ", result, in.EventTag)
+	log.Printf("Event status updated ! [Status: %d , Event: %s] ", result, in.EventTag)
 
 	return &pb.EventStatus{Status: result}, nil
 }
