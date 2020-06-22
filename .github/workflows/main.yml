@@ -62,9 +62,9 @@ jobs:
       - name: Run Tests
         run: go test -v ./...
         env:
-          CERT: localhost_50051.crt
-          CERT_KEY: localhost_50051.key
-          CA: haaukins-store.com.crt
+          CERT: ./localhost_50051.crt
+          CERT_KEY: ./localhost_50051.key
+          CA: ./haaukins-store.com.crt
 
       - name: Teardown resources # more stuff could be added in the future
         run : |
