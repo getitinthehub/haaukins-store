@@ -231,13 +231,6 @@ func TestAddEvent(t *testing.T) {
 }
 
 func TestAddTeam(t *testing.T) {
-	dbConn, err := createDBConnection()
-	if err != nil {
-		t.Fatalf("error on database connection create %v", err)
-	}
-	if err := cleanRecords(dbConn); err != nil {
-		t.Fatalf("error on cleaning records %v", err)
-	}
 	t.Log("Testing AddTeam and GetEventTeams functions")
 	conn, err := createTestClientConn()
 	if err != nil {
