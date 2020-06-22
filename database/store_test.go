@@ -1,9 +1,10 @@
-package tests
+package database
 
 import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -65,7 +66,6 @@ func TestStoreConnection(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-
 			tokenString, err := tc.token.SignedString([]byte(SIGNIN_VALUE))
 			if err != nil {
 				t.Fatalf("Error creating the token")
@@ -186,7 +186,13 @@ func createTestClientConn() (*grpc.ClientConn, error) {
 }
 
 func TestAddEvent(t *testing.T) {
-	t.Log("Testing AddEvent and GetEvents functions")
+	dbConn, err := createDBConnection()
+	if err != nil {
+		t.Fatalf("error on database connection create %v", err)
+	}
+	if err := cleanRecords(dbConn); err != nil {
+		t.Fatalf("error on cleaning records %v", err)
+	}
 	conn, err := createTestClientConn()
 	if err != nil {
 		t.Fatal(err)
@@ -204,22 +210,34 @@ func TestAddEvent(t *testing.T) {
 		StartTime:          "2020-05-20 14:35:01",
 		Status:             1,
 		ExpectedFinishTime: "2020-05-21 14:35:01",
+		FinishedAt:         "0001-01-01 00:00:00", // it means that event is not finished yet
 	}
 
-	_, err = c.AddEvent(context.Background(), &req)
+	resp, err := c.AddEvent(context.Background(), &req)
 	if err != nil {
 		t.Fatal(err)
 	}
-	events, err := c.GetEvents(context.Background(), &pb.GetEventRequest{})
+	if resp.ErrorMessage != "" {
+		t.Fatal(errors.New(resp.ErrorMessage))
+	}
+	events, err := c.GetEvents(context.Background(), &pb.GetEventRequest{Status: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(events.Events) != 1 {
 		t.Fatal("Error getting the stored events")
 	}
 }
 
 func TestAddTeam(t *testing.T) {
+	dbConn, err := createDBConnection()
+	if err != nil {
+		t.Fatalf("error on database connection create %v", err)
+	}
+	if err := cleanRecords(dbConn); err != nil {
+		t.Fatalf("error on cleaning records %v", err)
+	}
 	t.Log("Testing AddTeam and GetEventTeams functions")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -288,6 +306,7 @@ func TestTeamUpdateLastAccess(t *testing.T) {
 }
 
 func TestCloseEvent(t *testing.T) {
+
 	t.Log("Testing UpdateEventFinishDate function")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -306,6 +325,13 @@ func TestCloseEvent(t *testing.T) {
 }
 
 func TestMultipleEventWithSameTag(t *testing.T) {
+	dbConn, err := createDBConnection()
+	if err != nil {
+		t.Fatalf("error on database connection create %v", err)
+	}
+	if err := cleanRecords(dbConn); err != nil {
+		t.Fatalf("error on cleaning records %v", err)
+	}
 	t.Log("Testing Multiple Events with same Tags")
 	conn, err := createTestClientConn()
 	if err != nil {

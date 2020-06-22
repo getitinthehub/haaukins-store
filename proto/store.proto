@@ -57,7 +57,8 @@ message AddEventRequest{
     int32 capacity = 6;
     string startTime = 7;
     string expectedFinishTime = 8;
-    int32 status = 9;
+    string finishedAt = 9;
+    int32 status = 10;
 }
 
 message AddTeamRequest{
