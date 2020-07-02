@@ -18,6 +18,7 @@ service Store {
     rpc UpdateEventFinishDate (UpdateEventRequest) returns (UpdateResponse) {}
     rpc UpdateTeamSolvedChallenge (UpdateTeamSolvedChallengeRequest) returns (UpdateResponse) {}
     rpc UpdateTeamLastAccess (UpdateTeamLastAccessRequest) returns (UpdateResponse) {}
+    rpc UpdateEventTag (UpdateEventTagRequest) returns (UpdateResponse) {}
 }
 
 message EmptyRequest {}
@@ -47,6 +48,11 @@ message EventStatus {
     int32 status = 1;
 }
 
+
+message UpdateEventTagRequest  {
+    string oldTag = 1;
+    string newTag = 2;
+}
 
 message AddEventRequest{
     string name = 1;

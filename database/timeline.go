@@ -143,7 +143,7 @@ func daysInDates(sT, fT time.Time) int {
 }
 
 // return list of dates between given two date
-// will generate list of time
+// will generate list of date
 func getDates(sT, fT time.Time) []time.Time {
 	var dates []time.Time
 

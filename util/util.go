@@ -33,7 +33,8 @@ var (
 	Running   = State(0)
 	Booked    = State(1) // todo: will be added
 	Suspended = State(2)
-	Error     = State(3)
+	Closed    = State(3)
+	Error     = State(4)
 )
 
 type State int32
@@ -166,6 +167,15 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
 	return &pb.UpdateResponse{Message: result}, nil
+}
+
+func (s server) UpdateEventTag(ctx context.Context, in *pb.UpdateEventTagRequest) (*pb.UpdateResponse, error) {
+	r, err := s.store.UpdateEventTag(in)
+	if err != nil {
+		return &pb.UpdateResponse{Message: "Error happened on updating event tag", ErrorMessage: fmt.Sprintf("Error %v", err)}, err
+	}
+	return &pb.UpdateResponse{Message: r}, nil
+
 }
 
 func GetCreds(conf *model.Config) (credentials.TransportCredentials, error) {

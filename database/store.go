@@ -46,6 +46,7 @@ type Store interface {
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
 	UpdateTeamLastAccess(*pb.UpdateTeamLastAccessRequest) (string, error)
 	UpdateEventFinishDate(*pb.UpdateEventRequest) (string, error)
+	UpdateEventTag(*pb.UpdateEventTagRequest) (string, error)
 }
 
 func NewStore(conf *model.Config) (Store, error) {
@@ -292,6 +293,18 @@ func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 	log.Printf("Status updated for event: %s, status: %d \n", in.EventTag, in.Status)
 
 	return in.Status, nil
+}
+
+func (s *store) UpdateEventTag(in *pb.UpdateEventTagRequest) (string, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	_, err := s.db.Exec(UpdateEventTag, in.OldTag, in.NewTag)
+
+	if err != nil {
+		return "", err
+	}
+	return OK, nil
 }
 
 //
