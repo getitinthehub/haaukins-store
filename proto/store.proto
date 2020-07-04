@@ -36,6 +36,7 @@ message GetEventRequest {
     // status 0  > Running Events (which set as Running)
     // status 1  > Suspended Events (which set as Suspended)
     // status 2  > Booked Events (which are booked by client)
+    // status 3  > Closed Events (which are finished and closed )
      int32 status = 1;
 }
 
