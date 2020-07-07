@@ -50,8 +50,10 @@ var (
 
 	QueryEventStatus    = "SELECT status FROM event WHERE tag=$1"
 	QueryEventsByStatus = "SELECT * FROM event WHERE status=$1"
-
+	QueryIsEventExist   = "SELECT EXISTS (select 1 from event where tag=$1 and status!=$2)"
 	// finished_at '0001-01-01 00:00:00 means event does not finished yet '
 	EarliestDate = "SELECT started_at FROM event WHERE started_at=(SELECT MIN(started_at) FROM event) and finished_at = date('0001-01-01 00:00:00');"
 	LatestDate   = "SELECT finish_expected FROM event WHERE finish_expected =(SELECT max(finish_expected) FROM event) and finished_at = date('0001-01-01 00:00:00');"
+	// DropEvent is used in dropping booked events
+	DropEvent = "DELETE FROM event WHERE tag=$1 and status=$2"
 )

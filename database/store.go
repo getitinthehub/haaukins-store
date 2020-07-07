@@ -39,7 +39,8 @@ type Store interface {
 	AddTeam(*pb.AddTeamRequest) (string, error)
 	GetEvents(*pb.GetEventRequest) ([]model.Event, error)
 	GetTeams(string) ([]model.Team, error)
-
+	IsEventExists(*pb.GetEventByTagReq) (bool, error)
+	DropEvent(req *pb.DropEventReq) (bool, error)
 	GetCostsInTime() (map[string]int32, error)
 	GetEventStatus(*pb.GetEventStatusRequest) (int32, error)
 	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
@@ -277,8 +278,6 @@ func (s *store) GetEventStatus(in *pb.GetEventStatusRequest) (int32, error) {
 		return Error, err
 	}
 
-	log.Printf("Status for event: %d, event: %s \n", status, in.EventTag)
-
 	return status, nil
 
 }
@@ -290,7 +289,6 @@ func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 	if err != nil {
 		return Error, err
 	}
-	log.Printf("Status updated for event: %s, status: %d \n", in.EventTag, in.Status)
 
 	return in.Status, nil
 }
@@ -305,6 +303,31 @@ func (s *store) UpdateEventTag(in *pb.UpdateEventTagRequest) (string, error) {
 		return "", err
 	}
 	return OK, nil
+}
+
+func (s *store) IsEventExists(in *pb.GetEventByTagReq) (bool, error) {
+	var isEventExists bool
+	r := s.db.QueryRow(QueryIsEventExist, in.EventTag, in.Status)
+	if err := r.Scan(&isEventExists); err != nil {
+		return false, err
+	}
+	return isEventExists, nil
+}
+
+func (s *store) DropEvent(in *pb.DropEventReq) (bool, error) {
+	r, err := s.db.Exec(DropEvent, in.Tag, in.Status)
+	if err != nil {
+		return false, err
+	}
+	count, err := r.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("affected number of rows error %v", err)
+	}
+	if count > 0 {
+		return true, nil
+	}
+	return false, fmt.Errorf("either no such an event or something else happened")
+
 }
 
 //

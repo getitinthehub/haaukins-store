@@ -86,6 +86,22 @@ func (s server) GetEvents(ctx context.Context, in *pb.GetEventRequest) (*pb.GetE
 	return &pb.GetEventResponse{Events: events}, nil
 }
 
+func (s server) IsEventExists(ctx context.Context, in *pb.GetEventByTagReq) (*pb.GetEventByTagResp, error) {
+	isExist, err := s.store.IsEventExists(in)
+	if err != nil {
+		return &pb.GetEventByTagResp{}, err
+	}
+	return &pb.GetEventByTagResp{IsExist: isExist}, nil
+}
+
+func (s server) DropEvent(ctx context.Context, in *pb.DropEventReq) (*pb.DropEventResp, error) {
+	isDropped, err := s.store.DropEvent(in)
+	if err != nil {
+		return &pb.DropEventResp{}, err
+	}
+	return &pb.DropEventResp{IsDropped: isDropped}, nil
+}
+
 func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest) (*pb.EventStatus, error) {
 	result, err := s.store.GetEventStatus(in)
 	if err != nil {
