@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"github.com/dgrijalva/jwt-go"
@@ -307,9 +309,10 @@ func TestCloseEvent(t *testing.T) {
 	}
 	defer conn.Close()
 	c := pb.NewStoreClient(conn)
-
-	_, err = c.UpdateEventFinishDate(context.Background(), &pb.UpdateEventRequest{
-		EventId:    "test",
+	newTag := fmt.Sprintf("%s-%s", "test", strconv.Itoa(int(time.Now().Unix())))
+	_, err = c.UpdateCloseEvent(context.Background(), &pb.UpdateEventRequest{
+		OldTag:     "test",
+		NewTag:     newTag,
 		FinishedAt: "2020-05-21 14:35:00",
 	})
 	if err != nil {
