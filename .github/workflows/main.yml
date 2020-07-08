@@ -37,7 +37,13 @@ jobs:
 
       - name: Download example config file
         run: |
-          curl -o config.yml https://gist.githubusercontent.com/mrturkmen06/cc5becf2d8413ea18c27a5bb2aa4106f/raw/7c95ab9747124766357eaf910834364acab7e897/config.yml
+          curl -o config.yml https://gist.githubusercontent.com/mrturkmencom/cc5becf2d8413ea18c27a5bb2aa4106f/raw/2fc5b3fd415846f0b993a67d20d0094309f00698/config.yml
+
+      - name: Download certs
+        run: |
+          curl -o haaukins-store.com.crt https://gist.githubusercontent.com/mrturkmencom/da480dd97f74c7a9581d6a69d5b2e984/raw/cbc2e338800d81a904c320999e44ec38b721ff5c/haaukins-store.com.crt
+          curl -o localhost_50051.key    https://gist.githubusercontent.com/mrturkmencom/12132d60247e24041b954ee43d5e5cb1/raw/f18d0f0f96539fb424d1c463ec7e60ae8f846d0c/localhost_50051.key
+          curl -o localhost_50051.crt    https://gist.githubusercontent.com/mrturkmencom/fc57419e46a859a031e11aa10b97c9e1/raw/109b1e64340c7394dcd9f7295969659d3cbc72af/localhost_50051.crt
 
       - name: Get dependencies
         run: |
@@ -54,11 +60,13 @@ jobs:
           ./server &
 
       - name: Run Tests
-        run: go test ./tests
+        run: go test -v ./...
         env:
-          CERT: ./certs/localhost_50051.crt
-          CERT_KEY: ./certs/localhost_50051.key
-          CA: ./certs/haaukins-store.com.crt
+          CERT: ./../localhost_50051.crt
+          CERT_KEY: ./../localhost_50051.key
+          CA: ./../haaukins-store.com.crt
 
       - name: Teardown resources # more stuff could be added in the future
-        run : rm -rf config.yml
+        run : |
+          rm -rf config.yml
+          rm -rf *.crt *.key

@@ -33,7 +33,8 @@ var (
 	Running   = State(0)
 	Booked    = State(1) // todo: will be added
 	Suspended = State(2)
-	Error     = State(3)
+	Closed    = State(3)
+	Error     = State(4)
 )
 
 type State int32
@@ -85,26 +86,51 @@ func (s server) GetEvents(ctx context.Context, in *pb.GetEventRequest) (*pb.GetE
 	return &pb.GetEventResponse{Events: events}, nil
 }
 
-func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest) (*pb.EventStatus, error) {
+func (s server) IsEventExists(ctx context.Context, in *pb.GetEventByTagReq) (*pb.GetEventByTagResp, error) {
+	isExist, err := s.store.IsEventExists(in)
+	if err != nil {
+		return &pb.GetEventByTagResp{}, err
+	}
+	return &pb.GetEventByTagResp{IsExist: isExist}, nil
+}
+
+func (s server) DropEvent(ctx context.Context, in *pb.DropEventReq) (*pb.DropEventResp, error) {
+	isDropped, err := s.store.DropEvent(in)
+	if err != nil {
+		return &pb.DropEventResp{}, err
+	}
+	return &pb.DropEventResp{IsDropped: isDropped}, nil
+}
+
+func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest) (*pb.EventStatusStore, error) {
 	result, err := s.store.GetEventStatus(in)
 	if err != nil {
-		return &pb.EventStatus{Status: int32(Error)}, err
+		return &pb.EventStatusStore{Status: int32(Error)}, err
 	}
-	log.Printf("Event status returned ! [Status: %s , Event: %s] ", result, in.EventTag)
-	return &pb.EventStatus{Status: result}, nil
+	log.Printf("Event status returned ! [Status: %d , Event: %s] ", result, in.EventTag)
+	return &pb.EventStatusStore{Status: result}, nil
 
 }
 
-func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest) (*pb.EventStatus, error) {
-	log.Printf("Set event status for event %s to %s", in.EventTag, in.Status)
+func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest) (*pb.EventStatusStore, error) {
+	log.Printf("Set event status for event %s to %d", in.EventTag, in.Status)
 	result, err := s.store.SetEventStatus(in)
 	if err != nil {
-		return &pb.EventStatus{Status: int32(Error)}, err
+		return &pb.EventStatusStore{Status: int32(Error)}, err
 	}
 
-	log.Printf("Event status updated ! [Status: %s , Event: %s] ", result, in.EventTag)
+	log.Printf("Event status updated ! [Status: %d , Event: %s] ", result, in.EventTag)
 
-	return &pb.EventStatus{Status: result}, nil
+	return &pb.EventStatusStore{Status: result}, nil
+}
+
+func (s server) GetTimeSeries(ctx context.Context, r *pb.EmptyRequest) (*pb.GetTimeSeriesResponse, error) {
+	log.Printf("Calculating costs in timeline")
+	m, err := s.store.GetCostsInTime()
+	if err != nil {
+		return nil, fmt.Errorf("error on calculating costs %v", err)
+	}
+	return &pb.GetTimeSeriesResponse{Timeseries: m}, nil
 }
 
 func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) (*pb.GetEventTeamsResponse, error) {
@@ -130,13 +156,13 @@ func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) 
 	return &pb.GetEventTeamsResponse{Teams: teams}, nil
 }
 
-func (s server) UpdateEventFinishDate(ctx context.Context, in *pb.UpdateEventRequest) (*pb.UpdateResponse, error) {
-	result, err := s.store.UpdateEventFinishDate(in)
+func (s server) UpdateCloseEvent(ctx context.Context, in *pb.UpdateEventRequest) (*pb.UpdateResponse, error) {
+	result, err := s.store.UpdateCloseEvent(in)
 	if err != nil {
-		log.Printf("ERR: Error Update Event %s finish time: %s", in.EventId, err.Error())
+		log.Printf("ERR: Error Update Close Event %s finish time: %s", in.OldTag, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
-	log.Printf("Event %s Stopped", in.EventId)
+	log.Printf("Event %s Stopped", in.OldTag)
 	return &pb.UpdateResponse{Message: result}, nil
 }
 

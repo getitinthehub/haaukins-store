@@ -1,13 +1,16 @@
-package tests
+package database
 
 import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	pb "github.com/aau-network-security/haaukins-store/proto"
 	"github.com/dgrijalva/jwt-go"
@@ -65,7 +68,6 @@ func TestStoreConnection(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-
 			tokenString, err := tc.token.SignedString([]byte(SIGNIN_VALUE))
 			if err != nil {
 				t.Fatalf("Error creating the token")
@@ -186,7 +188,13 @@ func createTestClientConn() (*grpc.ClientConn, error) {
 }
 
 func TestAddEvent(t *testing.T) {
-	t.Log("Testing AddEvent and GetEvents functions")
+	dbConn, err := createDBConnection()
+	if err != nil {
+		t.Fatalf("error on database connection create %v", err)
+	}
+	if err := cleanRecords(dbConn); err != nil {
+		t.Fatalf("error on cleaning records %v", err)
+	}
 	conn, err := createTestClientConn()
 	if err != nil {
 		t.Fatal(err)
@@ -202,17 +210,23 @@ func TestAddEvent(t *testing.T) {
 		Available:          1,
 		Capacity:           2,
 		StartTime:          "2020-05-20 14:35:01",
+		Status:             1,
 		ExpectedFinishTime: "2020-05-21 14:35:01",
+		FinishedAt:         "0001-01-01 00:00:00", // it means that event is not finished yet
 	}
 
-	_, err = c.AddEvent(context.Background(), &req)
+	resp, err := c.AddEvent(context.Background(), &req)
 	if err != nil {
 		t.Fatal(err)
 	}
-	events, err := c.GetEvents(context.Background(), &pb.GetEventRequest{})
+	if resp.ErrorMessage != "" {
+		t.Fatal(errors.New(resp.ErrorMessage))
+	}
+	events, err := c.GetEvents(context.Background(), &pb.GetEventRequest{Status: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(events.Events) != 1 {
 		t.Fatal("Error getting the stored events")
 	}
@@ -287,6 +301,7 @@ func TestTeamUpdateLastAccess(t *testing.T) {
 }
 
 func TestCloseEvent(t *testing.T) {
+
 	t.Log("Testing UpdateEventFinishDate function")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -294,9 +309,10 @@ func TestCloseEvent(t *testing.T) {
 	}
 	defer conn.Close()
 	c := pb.NewStoreClient(conn)
-
-	_, err = c.UpdateEventFinishDate(context.Background(), &pb.UpdateEventRequest{
-		EventId:    "test",
+	newTag := fmt.Sprintf("%s-%s", "test", strconv.Itoa(int(time.Now().Unix())))
+	_, err = c.UpdateCloseEvent(context.Background(), &pb.UpdateEventRequest{
+		OldTag:     "test",
+		NewTag:     newTag,
 		FinishedAt: "2020-05-21 14:35:00",
 	})
 	if err != nil {
@@ -305,6 +321,13 @@ func TestCloseEvent(t *testing.T) {
 }
 
 func TestMultipleEventWithSameTag(t *testing.T) {
+	dbConn, err := createDBConnection()
+	if err != nil {
+		t.Fatalf("error on database connection create %v", err)
+	}
+	if err := cleanRecords(dbConn); err != nil {
+		t.Fatalf("error on cleaning records %v", err)
+	}
 	t.Log("Testing Multiple Events with same Tags")
 	conn, err := createTestClientConn()
 	if err != nil {
@@ -319,6 +342,7 @@ func TestMultipleEventWithSameTag(t *testing.T) {
 		Frontends:          "kali",
 		Exercises:          "ftp,xss,wc,jwt",
 		Available:          1,
+		Status:             1,
 		Capacity:           2,
 		StartTime:          "2020-06-20 14:35:01",
 		ExpectedFinishTime: "2020-06-21 14:35:01",
