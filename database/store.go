@@ -46,8 +46,7 @@ type Store interface {
 	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
 	UpdateTeamLastAccess(*pb.UpdateTeamLastAccessRequest) (string, error)
-	UpdateEventFinishDate(*pb.UpdateEventRequest) (string, error)
-	UpdateEventTag(*pb.UpdateEventTagRequest) (string, error)
+	UpdateCloseEvent(*pb.UpdateEventRequest) (string, error)
 }
 
 func NewStore(conf *model.Config) (Store, error) {
@@ -257,11 +256,11 @@ func (s *store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string
 	return OK, nil
 }
 
-func (s *store) UpdateEventFinishDate(in *pb.UpdateEventRequest) (string, error) {
+func (s *store) UpdateCloseEvent(in *pb.UpdateEventRequest) (string, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	_, err := s.db.Exec(UpdateEventFinishDate, in.EventId, in.FinishedAt)
+	_, err := s.db.Exec(UpdateCloseEvent, in.OldTag, in.NewTag, in.FinishedAt)
 	if err != nil {
 		return "", err
 	}
@@ -291,18 +290,6 @@ func (s *store) SetEventStatus(in *pb.SetEventStatusRequest) (int32, error) {
 	}
 
 	return in.Status, nil
-}
-
-func (s *store) UpdateEventTag(in *pb.UpdateEventTagRequest) (string, error) {
-	s.m.Lock()
-	defer s.m.Unlock()
-
-	_, err := s.db.Exec(UpdateEventTag, in.OldTag, in.NewTag)
-
-	if err != nil {
-		return "", err
-	}
-	return OK, nil
 }
 
 func (s *store) IsEventExists(in *pb.GetEventByTagReq) (bool, error) {

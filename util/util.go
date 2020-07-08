@@ -102,26 +102,26 @@ func (s server) DropEvent(ctx context.Context, in *pb.DropEventReq) (*pb.DropEve
 	return &pb.DropEventResp{IsDropped: isDropped}, nil
 }
 
-func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest) (*pb.EventStatus, error) {
+func (s server) GetEventStatus(ctx context.Context, in *pb.GetEventStatusRequest) (*pb.EventStatusStore, error) {
 	result, err := s.store.GetEventStatus(in)
 	if err != nil {
-		return &pb.EventStatus{Status: int32(Error)}, err
+		return &pb.EventStatusStore{Status: int32(Error)}, err
 	}
 	log.Printf("Event status returned ! [Status: %d , Event: %s] ", result, in.EventTag)
-	return &pb.EventStatus{Status: result}, nil
+	return &pb.EventStatusStore{Status: result}, nil
 
 }
 
-func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest) (*pb.EventStatus, error) {
+func (s server) SetEventStatus(ctx context.Context, in *pb.SetEventStatusRequest) (*pb.EventStatusStore, error) {
 	log.Printf("Set event status for event %s to %d", in.EventTag, in.Status)
 	result, err := s.store.SetEventStatus(in)
 	if err != nil {
-		return &pb.EventStatus{Status: int32(Error)}, err
+		return &pb.EventStatusStore{Status: int32(Error)}, err
 	}
 
 	log.Printf("Event status updated ! [Status: %d , Event: %s] ", result, in.EventTag)
 
-	return &pb.EventStatus{Status: result}, nil
+	return &pb.EventStatusStore{Status: result}, nil
 }
 
 func (s server) GetTimeSeries(ctx context.Context, r *pb.EmptyRequest) (*pb.GetTimeSeriesResponse, error) {
@@ -156,13 +156,13 @@ func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) 
 	return &pb.GetEventTeamsResponse{Teams: teams}, nil
 }
 
-func (s server) UpdateEventFinishDate(ctx context.Context, in *pb.UpdateEventRequest) (*pb.UpdateResponse, error) {
-	result, err := s.store.UpdateEventFinishDate(in)
+func (s server) UpdateCloseEvent(ctx context.Context, in *pb.UpdateEventRequest) (*pb.UpdateResponse, error) {
+	result, err := s.store.UpdateCloseEvent(in)
 	if err != nil {
-		log.Printf("ERR: Error Update Event %s finish time: %s", in.EventId, err.Error())
+		log.Printf("ERR: Error Update Close Event %s finish time: %s", in.OldTag, err.Error())
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
-	log.Printf("Event %s Stopped", in.EventId)
+	log.Printf("Event %s Stopped", in.OldTag)
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
@@ -183,15 +183,6 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
 	}
 	return &pb.UpdateResponse{Message: result}, nil
-}
-
-func (s server) UpdateEventTag(ctx context.Context, in *pb.UpdateEventTagRequest) (*pb.UpdateResponse, error) {
-	r, err := s.store.UpdateEventTag(in)
-	if err != nil {
-		return &pb.UpdateResponse{Message: "Error happened on updating event tag", ErrorMessage: fmt.Sprintf("Error %v", err)}, err
-	}
-	return &pb.UpdateResponse{Message: r}, nil
-
 }
 
 func GetCreds(conf *model.Config) (credentials.TransportCredentials, error) {
