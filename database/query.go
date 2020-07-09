@@ -12,7 +12,8 @@ var (
 		"exercises text, " +
 		"started_at timestamp, " +
 		"finish_expected timestamp, " +
-		"finished_at timestamp);"
+		"finished_at timestamp," +
+		"createdBy text);"
 
 	CreateTeamsTable = "CREATE TABLE IF NOT EXISTS Team(" +
 		"id serial primary key, " +
@@ -28,8 +29,8 @@ var (
 	AddTeamQuery = "INSERT INTO team (tag, event_id, email, name, password, created_at, last_access, solved_challenges)" +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 
-	AddEventQuery = "INSERT INTO event (tag, name, available, capacity, frontends, status, exercises, started_at, finish_expected, finished_at)" +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+	AddEventQuery = "INSERT INTO event (tag, name, available, capacity, frontends, status, exercises, started_at, finish_expected, finished_at, createdby)" +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11)"
 
 	UpdateCloseEvent  = "UPDATE event SET tag = $2, finished_at = $3 WHERE tag = $1"
 	UpdateEventStatus = "UPDATE event SET status = $2 WHERE tag = $1 "
@@ -47,7 +48,8 @@ var (
 
 	QueryEventStatus    = "SELECT status FROM event WHERE tag=$1"
 	QueryEventsByStatus = "SELECT * FROM event WHERE status=$1"
-	QueryIsEventExist   = "SELECT EXISTS (select 1 from event where tag=$1 and status!=$2)"
+	QueryEventByUser    = "SELECT * FROM event WHERE status!=$1 and createdby=$2"
+	QueryIsEventExist   = "SELECT EXISTS (select tag from event where tag=$1 and status!=$2)"
 	// finished_at '0001-01-01 00:00:00 means event does not finished yet '
 	EarliestDate = "SELECT started_at FROM event WHERE started_at=(SELECT MIN(started_at) FROM event) and finished_at = date('0001-01-01 00:00:00');"
 	LatestDate   = "SELECT finish_expected FROM event WHERE finish_expected =(SELECT max(finish_expected) FROM event) and finished_at = date('0001-01-01 00:00:00');"

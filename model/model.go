@@ -12,6 +12,7 @@ type Event struct {
 	StartedAt          string
 	ExpectedFinishTime string
 	FinishedAt         string
+	CreatedBy          string
 }
 
 type Team struct {

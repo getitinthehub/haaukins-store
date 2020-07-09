@@ -66,23 +66,7 @@ func (s server) GetEvents(ctx context.Context, in *pb.GetEventRequest) (*pb.GetE
 		log.Printf("ERR: Error Get Events %s", err.Error())
 		return &pb.GetEventResponse{ErrorMessage: err.Error()}, nil
 	}
-
-	var events []*pb.GetEventResponse_Events
-	for _, e := range result {
-		events = append(events, &pb.GetEventResponse_Events{
-			Name:               e.Name,
-			Tag:                e.Tag,
-			Frontends:          e.Frontends,
-			Exercises:          e.Exercises,
-			Available:          int32(e.Available),
-			Capacity:           int32(e.Capacity),
-			StartedAt:          e.StartedAt,
-			ExpectedFinishTime: e.ExpectedFinishTime,
-			FinishedAt:         e.FinishedAt,
-			Status:             e.Status,
-		})
-	}
-	log.Printf("Get Events")
+	events := getEventsResponse(result)
 	return &pb.GetEventResponse{Events: events}, nil
 }
 
@@ -92,6 +76,18 @@ func (s server) IsEventExists(ctx context.Context, in *pb.GetEventByTagReq) (*pb
 		return &pb.GetEventByTagResp{}, err
 	}
 	return &pb.GetEventByTagResp{IsExist: isExist}, nil
+}
+
+// this might be somehow handled by GetEvents too
+// however it is much easy to create new function
+func (s server) GetEventByUser(ctx context.Context, in *pb.GetEventByUserReq) (*pb.GetEventResponse, error) {
+	result, err := s.store.GetEventByUser(in)
+	if err != nil {
+		log.Printf("ERR: get events by user %s", err.Error())
+		return &pb.GetEventResponse{ErrorMessage: err.Error()}, nil
+	}
+	events := getEventsResponse(result)
+	return &pb.GetEventResponse{Events: events}, nil
 }
 
 func (s server) DropEvent(ctx context.Context, in *pb.DropEventReq) (*pb.DropEventResp, error) {
@@ -316,4 +312,25 @@ func NewConfigFromFile(path string) (*model.Config, error) {
 	}
 
 	return &c, nil
+}
+
+func getEventsResponse(result []model.Event) []*pb.GetEventResponse_Events {
+	var events []*pb.GetEventResponse_Events
+	for _, e := range result {
+		events = append(events, &pb.GetEventResponse_Events{
+			Name:               e.Name,
+			Tag:                e.Tag,
+			Frontends:          e.Frontends,
+			Exercises:          e.Exercises,
+			Available:          int32(e.Available),
+			Capacity:           int32(e.Capacity),
+			StartedAt:          e.StartedAt,
+			ExpectedFinishTime: e.ExpectedFinishTime,
+			FinishedAt:         e.FinishedAt,
+			Status:             e.Status,
+			CreatedBy:          e.CreatedBy,
+		})
+	}
+	log.Printf("Get Events")
+	return events
 }
