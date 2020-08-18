@@ -51,6 +51,13 @@ func (s server) AddEvent(ctx context.Context, in *pb.AddEventRequest) (*pb.Inser
 }
 
 func (s server) AddTeam(ctx context.Context, in *pb.AddTeamRequest) (*pb.InsertResponse, error) {
+	// check event
+	// status : closed means invert, will check, running, suspended and booked ones
+	ok, err := s.store.IsEventExists(&pb.GetEventByTagReq{EventTag: in.EventTag, Status: int32(Closed)})
+	if !ok {
+		return &pb.InsertResponse{ErrorMessage: "No event found by given tag"}, fmt.Errorf("Event %v does not exists", in.EventTag)
+	}
+
 	result, err := s.store.AddTeam(in)
 	if err != nil {
 		log.Printf("ERR: Error Add Team %s", err.Error())
