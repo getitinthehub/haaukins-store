@@ -38,6 +38,7 @@ type Store interface {
 	AddEvent(*pb.AddEventRequest) (string, error)
 	AddTeam(*pb.AddTeamRequest) (string, error)
 	GetEvents(*pb.GetEventRequest) ([]model.Event, error)
+	GetEventByUser(*pb.GetEventByUserReq) ([]model.Event, error)
 	GetTeams(string) ([]model.Team, error)
 	IsEventExists(*pb.GetEventByTagReq) (bool, error)
 	DropEvent(req *pb.DropEventReq) (bool, error)
@@ -90,7 +91,7 @@ func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	finishTime, _ := time.Parse(TimeFormat, in.FinishedAt)
 	expectedFinishTime, _ := time.Parse(TimeFormat, in.ExpectedFinishTime)
 
-	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, startTime, expectedFinishTime, finishTime)
+	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, startTime, expectedFinishTime, finishTime, in.CreatedBy)
 
 	if err != nil {
 		return "", err
@@ -150,19 +151,17 @@ func (s *store) GetEvents(in *pb.GetEventRequest) ([]model.Event, error) {
 		}
 	}
 
-	var events []model.Event
-	for rows.Next() {
+	return parseEvents(rows)
+}
 
-		event := new(model.Event)
-		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
-			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt)
-		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
-			return nil, err
-		}
-		events = append(events, *event)
+func (s *store) GetEventByUser(in *pb.GetEventByUserReq) ([]model.Event, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	rows, err := s.db.Query(QueryEventByUser, in.Status, in.User)
+	if err != nil {
+		return nil, fmt.Errorf("query suspended events err %v", err)
 	}
-
-	return events, nil
+	return parseEvents(rows)
 }
 
 func (s *store) GetTeams(tag string) ([]model.Team, error) {
@@ -315,6 +314,20 @@ func (s *store) DropEvent(in *pb.DropEventReq) (bool, error) {
 	}
 	return false, fmt.Errorf("either no such an event or something else happened")
 
+}
+
+func parseEvents(rows *sql.Rows) ([]model.Event, error) {
+	var events []model.Event
+	for rows.Next() {
+		event := new(model.Event)
+		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
+			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy)
+		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
+			return nil, err
+		}
+		events = append(events, *event)
+	}
+	return events, nil
 }
 
 //
