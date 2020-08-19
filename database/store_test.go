@@ -233,7 +233,7 @@ func TestAddEvent(t *testing.T) {
 }
 
 func TestAddTeam(t *testing.T) {
-	t.Log("Testing AddTeam and GetEventTeams functions")
+
 	conn, err := createTestClientConn()
 	if err != nil {
 		t.Fatal(err)
@@ -249,6 +249,7 @@ func TestAddTeam(t *testing.T) {
 		Password: "password",
 	})
 	if err != nil {
+		t.Logf("Error happened in AddTeam to event %v\n", err)
 		t.Fatal()
 	}
 
@@ -264,7 +265,6 @@ func TestAddTeam(t *testing.T) {
 }
 
 func TestTeamSolveChallenge(t *testing.T) {
-	t.Log("Testing UpdateTeamSolvedChallenge function")
 	conn, err := createTestClientConn()
 	if err != nil {
 		t.Fatal(err)
@@ -283,7 +283,7 @@ func TestTeamSolveChallenge(t *testing.T) {
 }
 
 func TestTeamUpdateLastAccess(t *testing.T) {
-	t.Log("Testing UpdateTeamLastAccess function")
+
 	conn, err := createTestClientConn()
 	if err != nil {
 		t.Fatal(err)
@@ -302,7 +302,6 @@ func TestTeamUpdateLastAccess(t *testing.T) {
 
 func TestCloseEvent(t *testing.T) {
 
-	t.Log("Testing UpdateEventFinishDate function")
 	conn, err := createTestClientConn()
 	if err != nil {
 		t.Fatal(err)

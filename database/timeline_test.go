@@ -57,7 +57,7 @@ func insertTeamEvent(eid int, db *sql.DB) error {
 }
 
 func insertFakeEvent(event fakeEvent, db *sql.DB) error {
-	_, err := db.Exec(AddEventQuery, event.tag, "", event.available, event.capacity, "kali", 1, "ftp,sql", event.sT.UTC(), event.fT.UTC(), time.Date(0001, 01, 01, 00, 00, 00, 0000, time.UTC).Format(time.RFC3339))
+	_, err := db.Exec(AddEventQuery, event.tag, "", event.available, event.capacity, "kali", 1, "ftp,sql", event.sT.UTC(), event.fT.UTC(), time.Date(0001, 01, 01, 00, 00, 00, 0000, time.UTC).Format(time.RFC3339), "tester")
 	if err != nil {
 		return err
 	}
@@ -211,6 +211,7 @@ func TestGetEvents(t *testing.T) {
 		StartedAt:          startTime.Format(time.RFC3339),
 		ExpectedFinishTime: expectedFinishTime.Format(time.RFC3339),
 		FinishedAt:         time.Date(0001, 01, 01, 00, 00, 00, 0000, time.UTC).Format(time.RFC3339),
+		CreatedBy:          "tester",
 	}}
 
 	if got := getEvents(db); !reflect.DeepEqual(got, events) {

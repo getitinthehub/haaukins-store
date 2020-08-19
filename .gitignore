@@ -11,3 +11,5 @@
 certs
 config.yml
 data
+# Contains database logs when running on local
+logs
