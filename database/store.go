@@ -25,6 +25,7 @@ var (
 	Running   = State(0)
 	Suspended = State(1)
 	Booked    = State(2)
+	Closed    = State(3)
 )
 
 type State int32
@@ -142,6 +143,12 @@ func (s *store) GetEvents(in *pb.GetEventRequest) ([]model.Event, error) {
 		rows, err = s.db.Query(QueryEventsByStatus, int32(Booked))
 		if err != nil {
 			return nil, fmt.Errorf("query boooked events err %v", err)
+		}
+		// query only closed events
+	case int32(Closed):
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Closed))
+		if err != nil {
+			return nil, fmt.Errorf("query closed events err %v", err)
 		}
 	default:
 		// all events
