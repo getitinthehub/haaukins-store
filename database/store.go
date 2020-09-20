@@ -91,7 +91,7 @@ func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	finishTime, _ := time.Parse(TimeFormat, in.FinishedAt)
 	expectedFinishTime, _ := time.Parse(TimeFormat, in.ExpectedFinishTime)
 
-	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, startTime, expectedFinishTime, finishTime, in.CreatedBy)
+	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, startTime, expectedFinishTime, finishTime, in.CreatedBy, in.OnlyVPN)
 
 	if err != nil {
 		return "", err
