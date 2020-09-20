@@ -321,7 +321,7 @@ func parseEvents(rows *sql.Rows) ([]model.Event, error) {
 	for rows.Next() {
 		event := new(model.Event)
 		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
-			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy)
+			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy, &event.OnlyVPN)
 		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
 			return nil, err
 		}
