@@ -213,6 +213,7 @@ func TestAddEvent(t *testing.T) {
 		Status:             1,
 		ExpectedFinishTime: "2020-05-21 14:35:01",
 		FinishedAt:         "0001-01-01 00:00:00", // it means that event is not finished yet
+		OnlyVPN:            false,
 	}
 
 	resp, err := c.AddEvent(context.Background(), &req)

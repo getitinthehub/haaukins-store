@@ -17,7 +17,7 @@ services:
       - internal
 
   postgres-db:
-    image: postgres:9.6.18-alpine
+    image: postgres:alpine
     container_name: postgres
     command: postgres -c config_file=/etc/postgresql/postgresql.conf -c logging_collector=on -c log_destination=stderr -c log_directory=/logs
     env_file:

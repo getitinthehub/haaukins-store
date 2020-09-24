@@ -13,6 +13,7 @@ type Event struct {
 	ExpectedFinishTime string
 	FinishedAt         string
 	CreatedBy          string
+	OnlyVPN            bool
 }
 
 type Team struct {
