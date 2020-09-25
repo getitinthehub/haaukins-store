@@ -336,6 +336,7 @@ func getEventsResponse(result []model.Event) []*pb.GetEventResponse_Events {
 			FinishedAt:         e.FinishedAt,
 			Status:             e.Status,
 			CreatedBy:          e.CreatedBy,
+			OnlyVPN:            e.OnlyVPN,
 		})
 	}
 	log.Printf("Get Events")
