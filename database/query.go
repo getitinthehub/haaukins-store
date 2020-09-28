@@ -25,6 +25,7 @@ var (
 		"password varchar (250), " +
 		"created_at timestamp, " +
 		"last_access timestamp, " +
+		"step integer, " +
 		"solved_challenges text);"
 
 	AddTeamQuery = "INSERT INTO team (tag, event_id, email, name, password, created_at, last_access, solved_challenges)" +

@@ -134,6 +134,7 @@ message GetEventTeamsResponse{
         string createdAt = 5;
         string lastAccess = 6;
         string solvedChallenges = 7;
+        int32 step = 8;
     }
     repeated Teams teams = 1;
     string errorMessage = 2;

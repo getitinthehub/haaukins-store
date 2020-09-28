@@ -26,6 +26,7 @@ type Team struct {
 	CreatedAt        string
 	LastAccess       string
 	SolvedChallenges string
+	Step             uint
 }
 
 type Config struct {

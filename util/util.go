@@ -153,6 +153,7 @@ func (s server) GetEventTeams(ctx context.Context, in *pb.GetEventTeamsRequest) 
 			CreatedAt:        t.CreatedAt,
 			LastAccess:       t.LastAccess,
 			SolvedChallenges: t.SolvedChallenges,
+			Step:             int32(t.Step),
 		})
 	}
 	log.Printf("Get Teams for the Event %s", in.EventTag)

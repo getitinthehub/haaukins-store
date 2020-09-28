@@ -110,7 +110,7 @@ func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 		return "", err
 	}
 
-	_, err := s.db.Exec(AddTeamQuery, in.Id, eventId, in.Email, in.Name, in.Password, now, now, "[]")
+	_, err := s.db.Exec(AddTeamQuery, in.Id, eventId, in.Email, in.Name, in.Password, now, now, 0, "[]")
 	if err != nil {
 		return "", err
 	}
@@ -183,7 +183,7 @@ func (s *store) GetTeams(tag string) ([]model.Team, error) {
 
 		team := new(model.Team)
 		err := rows.Scan(&team.Id, &team.Tag, &team.EventId, &team.Email, &team.Name, &team.Password, &team.CreatedAt,
-			&team.LastAccess, &team.SolvedChallenges)
+			&team.LastAccess, &team.Step, &team.SolvedChallenges)
 		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
 			return nil, err
 		}
