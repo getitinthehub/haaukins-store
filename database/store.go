@@ -46,6 +46,7 @@ type Store interface {
 	GetEventStatus(*pb.GetEventStatusRequest) (int32, error)
 	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
+	UpdateTeamStep(request *pb.UpdateTeamStepTrackerRequest) (string, error)
 	UpdateTeamLastAccess(*pb.UpdateTeamLastAccessRequest) (string, error)
 	UpdateCloseEvent(*pb.UpdateEventRequest) (string, error)
 }
@@ -236,6 +237,18 @@ func (s *store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeReques
 	newSolvedChallengesDB, _ := json.Marshal(solvedChallenges)
 
 	_, err := s.db.Exec(UpdateTeamSolvedChl, in.TeamId, string(newSolvedChallengesDB))
+	if err != nil {
+		return "", err
+	}
+
+	return OK, nil
+}
+
+func (s *store) UpdateTeamStep(in *pb.UpdateTeamStepTrackerRequest) (string, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	_, err := s.db.Exec(UpdateEventLastaccessedDate, in.TeamId, in.Step)
 	if err != nil {
 		return "", err
 	}

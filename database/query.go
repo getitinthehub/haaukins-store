@@ -28,8 +28,8 @@ var (
 		"step integer, " +
 		"solved_challenges text);"
 
-	AddTeamQuery = "INSERT INTO team (tag, event_id, email, name, password, created_at, last_access, solved_challenges)" +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+	AddTeamQuery = "INSERT INTO team (tag, event_id, email, name, password, created_at, last_access, step, solved_challenges)" +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
 
 	AddEventQuery = "INSERT INTO event (tag, name, available, capacity, frontends, status, exercises, started_at, finish_expected, finished_at, createdby, onlyvpn)" +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12)"
@@ -39,6 +39,7 @@ var (
 
 	UpdateEventLastaccessedDate = "UPDATE team SET last_access = $2 WHERE tag = $1"
 	UpdateTeamSolvedChl         = "UPDATE team SET solved_challenges = $2 WHERE tag = $1"
+	UpdateTeamStep              = "UPDATE team SET step = $2 WHERE tag = $1"
 
 	QuerySolvedChls = "SELECT solved_challenges FROM team WHERE tag=$1"
 	QueryEventTable = "SELECT * FROM event"

@@ -180,6 +180,15 @@ func (s server) UpdateTeamSolvedChallenge(ctx context.Context, in *pb.UpdateTeam
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
+func (s server) UpdateTeamStepTracker(ctx context.Context, in *pb.UpdateTeamStepTrackerRequest) (*pb.UpdateResponse, error) {
+	result, err := s.store.UpdateTeamStep(in)
+	if err != nil {
+		log.Printf("ERR: Error Update team %s step: %s", in.TeamId, err.Error())
+		return &pb.UpdateResponse{ErrorMessage: err.Error()}, nil
+	}
+	return &pb.UpdateResponse{Message: result}, nil
+}
+
 func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastAccessRequest) (*pb.UpdateResponse, error) {
 	result, err := s.store.UpdateTeamLastAccess(in)
 	if err != nil {

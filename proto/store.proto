@@ -19,6 +19,7 @@ service Store {
     rpc UpdateCloseEvent (UpdateEventRequest) returns (UpdateResponse) {}
     rpc UpdateTeamSolvedChallenge (UpdateTeamSolvedChallengeRequest) returns (UpdateResponse) {}
     rpc UpdateTeamLastAccess (UpdateTeamLastAccessRequest) returns (UpdateResponse) {}
+    rpc UpdateTeamStepTracker (UpdateTeamStepTrackerRequest) returns (UpdateResponse) {}
 }
 
 message EmptyRequest {}
@@ -160,4 +161,9 @@ message UpdateTeamLastAccessRequest{
 message UpdateResponse{
     string Message = 1;
     string errorMessage = 2;
+}
+
+message UpdateTeamStepTrackerRequest{
+    string teamId = 1;
+    int32 step = 2;
 }
