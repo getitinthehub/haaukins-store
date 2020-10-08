@@ -17,16 +17,17 @@ type Event struct {
 }
 
 type Team struct {
-	Id               uint //DB Primary key
-	Tag              string
-	EventId          uint //DB Primary key of the event
-	Email            string
-	Name             string
-	Password         string
-	CreatedAt        string
-	LastAccess       string
-	SolvedChallenges string
-	Step             uint
+	Id                uint //DB Primary key
+	Tag               string
+	EventId           uint //DB Primary key of the event
+	Email             string
+	Name              string
+	Password          string
+	CreatedAt         string
+	LastAccess        string
+	SolvedChallenges  string
+	Step              uint
+	SkippedChallenges string
 }
 
 type Config struct {
