@@ -5,6 +5,9 @@ on:
     paths-ignore:
       - 'README.md'
       - 'LICENCE'
+    branches-ignore:
+      - 'develop'
+      - 'master'
 jobs:
   formalities:
     runs-on: ubuntu-latest
