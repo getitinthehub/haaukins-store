@@ -14,7 +14,8 @@ var (
 		"finish_expected timestamp, " +
 		"finished_at timestamp," +
 		"createdBy text," +
-		"onlyVPN boolean);"
+		"onlyVPN boolean," +
+		"secretKey text);"
 
 	CreateTeamsTable = "CREATE TABLE IF NOT EXISTS Team(" +
 		"id serial primary key, " +
@@ -30,8 +31,8 @@ var (
 	AddTeamQuery = "INSERT INTO team (tag, event_id, email, name, password, created_at, last_access, solved_challenges)" +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 
-	AddEventQuery = "INSERT INTO event (tag, name, available, capacity, frontends, status, exercises, started_at, finish_expected, finished_at, createdby, onlyvpn)" +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12)"
+	AddEventQuery = "INSERT INTO event (tag, name, available, capacity, frontends, status, exercises, started_at, finish_expected, finished_at, createdby, onlyvpn,secretKey)" +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12,$13)"
 
 	UpdateCloseEvent  = "UPDATE event SET tag = $2, finished_at = $3 WHERE tag = $1"
 	UpdateEventStatus = "UPDATE event SET status = $2 WHERE tag = $1 "

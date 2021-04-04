@@ -324,6 +324,7 @@ func NewConfigFromFile(path string) (*model.Config, error) {
 func getEventsResponse(result []model.Event) []*pb.GetEventResponse_Events {
 	var events []*pb.GetEventResponse_Events
 	for _, e := range result {
+		log.Printf("Event %s , Secret Key %s ", e.Name, e.SecretKey)
 		events = append(events, &pb.GetEventResponse_Events{
 			Name:               e.Name,
 			Tag:                e.Tag,
@@ -337,6 +338,7 @@ func getEventsResponse(result []model.Event) []*pb.GetEventResponse_Events {
 			Status:             e.Status,
 			CreatedBy:          e.CreatedBy,
 			OnlyVPN:            e.OnlyVPN,
+			SecretKey:          e.SecretKey,
 		})
 	}
 	log.Printf("Get Events")
