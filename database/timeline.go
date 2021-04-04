@@ -72,7 +72,7 @@ func getEvents(db *sql.DB) []model.Event {
 	for r.Next() {
 		event := new(model.Event)
 		err := r.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
-			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy, &event.OnlyVPN)
+			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy, &event.OnlyVPN, &event.SecretKey)
 		if err != nil && !strings.Contains(err.Error(), "Null conversion error ") {
 			log.Fatalf("Error on scanning query %v", err)
 		}

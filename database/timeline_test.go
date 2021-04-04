@@ -213,6 +213,7 @@ func TestGetEvents(t *testing.T) {
 		FinishedAt:         time.Date(0001, 01, 01, 00, 00, 00, 0000, time.UTC).Format(time.RFC3339),
 		CreatedBy:          "tester",
 		OnlyVPN:            false,
+		SecretKey:          "",
 	}}
 
 	if got := getEvents(db); !reflect.DeepEqual(got, events) {
