@@ -39,6 +39,7 @@ var (
 
 	UpdateEventLastaccessedDate = "UPDATE team SET last_access = $2 WHERE tag = $1"
 	UpdateTeamSolvedChl         = "UPDATE team SET solved_challenges = $2 WHERE tag = $1"
+	UpdateTeamPassword          = "UPDATE team SET password = $1 WHERE tag = $2 and event_id = $3"
 
 	QuerySolvedChls = "SELECT solved_challenges FROM team WHERE tag=$1"
 	QueryEventTable = "SELECT * FROM event"
