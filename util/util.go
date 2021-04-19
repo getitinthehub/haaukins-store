@@ -188,6 +188,24 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
+func (s server) UpdateTeamPassword(ctx context.Context, req *pb.UpdateTeamPassRequest) (*pb.UpdateResponse, error) {
+	if err := s.store.UpdateTeamPassword(req); err != nil {
+		log.Printf("ERR: Error Update team %s password: %s", req.TeamID, err.Error())
+		return &pb.UpdateResponse{ErrorMessage: err.Error()}, err
+	}
+
+	return &pb.UpdateResponse{}, nil
+}
+
+func (s server) GetEventID(ctx context.Context, req *pb.GetEventIDReq) (*pb.GetEventIDResp, error) {
+	id, err := s.store.GetEventID(req)
+	if err != nil {
+		return &pb.GetEventIDResp{}, err
+	}
+
+	return &pb.GetEventIDResp{EventID: id}, nil
+}
+
 func GetCreds(conf *model.Config) (credentials.TransportCredentials, error) {
 	log.Printf("Preparing credentials for RPC")
 

@@ -48,6 +48,8 @@ type Store interface {
 	SetEventStatus(*pb.SetEventStatusRequest) (int32, error)
 	UpdateTeamSolvedChallenge(*pb.UpdateTeamSolvedChallengeRequest) (string, error)
 	UpdateTeamLastAccess(*pb.UpdateTeamLastAccessRequest) (string, error)
+	UpdateTeamPassword(in *pb.UpdateTeamPassRequest) error
+	GetEventID(in *pb.GetEventIDReq) (int32, error)
 	UpdateCloseEvent(*pb.UpdateEventRequest) (string, error)
 }
 
@@ -248,6 +250,23 @@ func (s *store) UpdateTeamSolvedChallenge(in *pb.UpdateTeamSolvedChallengeReques
 	}
 
 	return OK, nil
+}
+
+func (s *store) UpdateTeamPassword(in *pb.UpdateTeamPassRequest) error {
+	_, err := s.db.Exec(UpdateTeamPassword, in.EncryptedPass, in.TeamID, in.EventID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *store) GetEventID(in *pb.GetEventIDReq) (int32, error) {
+
+	var eventId int32
+	if err := s.db.QueryRow(QueryEventId, in.EventTag).Scan(&eventId); err != nil && !strings.Contains(err.Error(), "no rows in result set") {
+		return -1, err
+	}
+	return eventId, nil
 }
 
 func (s *store) UpdateTeamLastAccess(in *pb.UpdateTeamLastAccessRequest) (string, error) {
