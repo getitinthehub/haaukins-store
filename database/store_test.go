@@ -323,13 +323,7 @@ func TestCloseEvent(t *testing.T) {
 }
 
 func TestMultipleEventWithSameTag(t *testing.T) {
-	dbConn, err := createDBConnection()
-	if err != nil {
-		t.Fatalf("error on database connection create %v", err)
-	}
-	if err := cleanRecords(dbConn); err != nil {
-		t.Fatalf("error on cleaning records %v", err)
-	}
+
 	t.Log("Testing Multiple Events with same Tags")
 	conn, err := createTestClientConn()
 	if err != nil {
