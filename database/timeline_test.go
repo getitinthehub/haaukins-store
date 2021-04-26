@@ -214,6 +214,7 @@ func TestGetEvents(t *testing.T) {
 		CreatedBy:          "tester",
 		OnlyVPN:            false,
 		SecretKey:          "",
+		DisabledExercises:  "",
 	}}
 
 	if got := getEvents(db); !reflect.DeepEqual(got, events) {
