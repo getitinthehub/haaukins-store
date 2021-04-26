@@ -214,6 +214,8 @@ func TestAddEvent(t *testing.T) {
 		ExpectedFinishTime: "2020-05-21 14:35:01",
 		FinishedAt:         "0001-01-01 00:00:00", // it means that event is not finished yet
 		OnlyVPN:            false,
+		SecretKey:          "",
+		DisabledExercises:  "",
 	}
 
 	resp, err := c.AddEvent(context.Background(), &req)
@@ -346,6 +348,9 @@ func TestMultipleEventWithSameTag(t *testing.T) {
 		Capacity:           2,
 		StartTime:          "2020-06-20 14:35:01",
 		ExpectedFinishTime: "2020-06-21 14:35:01",
+		OnlyVPN:            false,
+		SecretKey:          "",
+		DisabledExercises:  "",
 	}
 
 	_, err = c.AddEvent(context.Background(), &req)
