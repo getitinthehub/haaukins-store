@@ -357,6 +357,7 @@ func getEventsResponse(result []model.Event) []*pb.GetEventResponse_Events {
 			CreatedBy:          e.CreatedBy,
 			OnlyVPN:            e.OnlyVPN,
 			SecretKey:          e.SecretKey,
+			DisabledExercises:  e.DisabledExercises,
 		})
 	}
 	log.Printf("Get Events")
