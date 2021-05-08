@@ -15,6 +15,7 @@ type Event struct {
 	CreatedBy          string
 	OnlyVPN            bool
 	SecretKey          string
+	DisabledExercises  string
 }
 
 type Team struct {

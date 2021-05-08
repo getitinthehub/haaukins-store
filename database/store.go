@@ -25,6 +25,7 @@ var (
 	Running   = State(0)
 	Suspended = State(1)
 	Booked    = State(2)
+	Closed    = State(3)
 )
 
 type State int32
@@ -93,7 +94,7 @@ func (s *store) AddEvent(in *pb.AddEventRequest) (string, error) {
 	finishTime, _ := time.Parse(TimeFormat, in.FinishedAt)
 	expectedFinishTime, _ := time.Parse(TimeFormat, in.ExpectedFinishTime)
 
-	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, startTime, expectedFinishTime, finishTime, in.CreatedBy, in.OnlyVPN, in.SecretKey)
+	_, err := s.db.Exec(AddEventQuery, in.Tag, in.Name, in.Available, in.Capacity, in.Frontends, in.Status, in.Exercises, startTime, expectedFinishTime, finishTime, in.CreatedBy, in.OnlyVPN, in.SecretKey, in.DisabledExercises)
 
 	if err != nil {
 		return "", err
@@ -144,6 +145,12 @@ func (s *store) GetEvents(in *pb.GetEventRequest) ([]model.Event, error) {
 		rows, err = s.db.Query(QueryEventsByStatus, int32(Booked))
 		if err != nil {
 			return nil, fmt.Errorf("query boooked events err %v", err)
+		}
+		// query only closed events
+	case int32(Closed):
+		rows, err = s.db.Query(QueryEventsByStatus, int32(Closed))
+		if err != nil {
+			return nil, fmt.Errorf("query closed events err %v", err)
 		}
 	default:
 		// all events
@@ -340,7 +347,7 @@ func parseEvents(rows *sql.Rows) ([]model.Event, error) {
 	for rows.Next() {
 		event := new(model.Event)
 		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
-			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy, &event.OnlyVPN, &event.SecretKey)
+			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy, &event.OnlyVPN, &event.SecretKey, &event.DisabledExercises)
 		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
 			return nil, err
 		}
