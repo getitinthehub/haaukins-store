@@ -188,6 +188,15 @@ func (s server) UpdateTeamLastAccess(ctx context.Context, in *pb.UpdateTeamLastA
 	return &pb.UpdateResponse{Message: result}, nil
 }
 
+func (s server) DeleteTeam(ctx context.Context, req *pb.DelTeamRequest) (*pb.DelTeamResp, error) {
+	result, err := s.store.DelTeam(req)
+	if err != nil {
+		log.Printf("ERR: Error delete team %s from event %s, err: %s", req.TeamId, req.EvTag, err.Error())
+		return &pb.DelTeamResp{Message: err.Error()}, nil
+	}
+	return &pb.DelTeamResp{Message: result}, nil
+}
+
 func (s server) UpdateTeamPassword(ctx context.Context, req *pb.UpdateTeamPassRequest) (*pb.UpdateResponse, error) {
 	if err := s.store.UpdateTeamPassword(req); err != nil {
 		log.Printf("ERR: Error Update team %s password: %s", req.TeamID, err.Error())
