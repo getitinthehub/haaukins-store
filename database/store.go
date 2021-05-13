@@ -51,6 +51,7 @@ type Store interface {
 	UpdateTeamPassword(in *pb.UpdateTeamPassRequest) error
 	GetEventID(in *pb.GetEventIDReq) (int32, error)
 	UpdateCloseEvent(*pb.UpdateEventRequest) (string, error)
+	DelTeam(request *pb.DelTeamRequest) (string, error)
 }
 
 func NewStore(conf *model.Config) (Store, error) {
@@ -117,7 +118,23 @@ func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "Team correctly added!", nil
+	return fmt.Sprintf("Team [ %s ]  correctly added to event [ %s ]", in.Name, in.EventTag), nil
+}
+
+func (s *store) DelTeam(req *pb.DelTeamRequest) (string, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	var eventId int
+	if err := s.db.QueryRow(QueryEventId, req.EvTag).Scan(&eventId); err != nil {
+		return "", err
+	}
+	_, err := s.db.Exec(DelTeamQuery, req.TeamId, eventId)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("Team [ %s ] is deleted from event tag [ %s ]", req.TeamId, req.EvTag), nil
+
 }
 
 func (s *store) GetEvents(in *pb.GetEventRequest) ([]model.Event, error) {

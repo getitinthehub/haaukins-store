@@ -32,6 +32,8 @@ var (
 	AddTeamQuery = "INSERT INTO team (tag, event_id, email, name, password, created_at, last_access, solved_challenges)" +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 
+	DelTeamQuery = "DELETE FROM team WHERE tag=$1 and event_id = $2;"
+
 	AddEventQuery = "INSERT INTO event (tag, name, available, capacity, frontends, status, exercises, started_at, finish_expected, finished_at, createdby, onlyvpn,secretKey, disabledExercises)" +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12,$13,$14)"
 
