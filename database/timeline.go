@@ -64,16 +64,17 @@ func calculateCost(db *sql.DB) (map[string]int32, error) {
 // getEvents will query event table
 // without any condition
 func getEvents(db *sql.DB) []model.Event {
-	r, err := db.Query(QueryEventTable)
+	rows, err := db.Query(QueryAllEventsExceptClosed)
 	if err != nil {
-		log.Fatalf("Error on executing query %v", err)
+
+		log.Printf("query running events err %v", err)
 	}
 	var events []model.Event
-	for r.Next() {
+	for rows.Next() {
 		event := new(model.Event)
-		err := r.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
+		err := rows.Scan(&event.Id, &event.Tag, &event.Name, &event.Available, &event.Capacity, &event.Status, &event.Frontends,
 			&event.Exercises, &event.StartedAt, &event.ExpectedFinishTime, &event.FinishedAt, &event.CreatedBy, &event.OnlyVPN, &event.SecretKey, &event.DisabledExercises)
-		if err != nil && !strings.Contains(err.Error(), "Null conversion error ") {
+		if err != nil && !strings.Contains(err.Error(), handleNullConversionError) {
 			log.Fatalf("Error on scanning query %v", err)
 		}
 		events = append(events, *event)
