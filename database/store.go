@@ -50,6 +50,7 @@ type Store interface {
 	UpdateTeamLastAccess(*pb.UpdateTeamLastAccessRequest) (string, error)
 	UpdateTeamPassword(in *pb.UpdateTeamPassRequest) error
 	GetEventID(in *pb.GetEventIDReq) (int32, error)
+	UpdateExercises(req *pb.UpdateExerciseRequest) (string, error)
 	UpdateCloseEvent(*pb.UpdateEventRequest) (string, error)
 	DelTeam(request *pb.DelTeamRequest) (string, error)
 }
@@ -119,6 +120,20 @@ func (s *store) AddTeam(in *pb.AddTeamRequest) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("Team [ %s ]  correctly added to event [ %s ]", in.Name, in.EventTag), nil
+}
+
+func (s *store) UpdateExercises(req *pb.UpdateExerciseRequest) (string, error) {
+	var eventId int
+	challenges := strings.TrimSpace(req.Challenges)
+	if err := s.db.QueryRow(QueryEventId, req.EventTag).Scan(&eventId); err != nil {
+		return "", err
+	}
+	_, err := s.db.Exec(UpdateExercises, eventId, challenges)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("The challenges [ %s ] is updated for event [ %s ]", challenges, req.EventTag), nil
 }
 
 func (s *store) DelTeam(req *pb.DelTeamRequest) (string, error) {
