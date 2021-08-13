@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt/v4"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -23,8 +23,8 @@ type Authenticator interface {
 }
 
 type auth struct {
-	sKey string 	// Signin Key
-	aKey string		// Auth Key
+	sKey string // Signin Key
+	aKey string // Auth Key
 }
 
 func NewAuthenticator(Skey, AKey string) Authenticator {

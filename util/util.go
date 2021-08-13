@@ -21,6 +21,7 @@ type server struct {
 	store database.Store
 	auth  Authenticator
 	tls   bool
+	pb.UnimplementedStoreServer
 }
 
 type certificate struct {
@@ -195,6 +196,15 @@ func (s server) DeleteTeam(ctx context.Context, req *pb.DelTeamRequest) (*pb.Del
 		return &pb.DelTeamResp{Message: err.Error()}, nil
 	}
 	return &pb.DelTeamResp{Message: result}, nil
+}
+
+func (s server) UpdateExercises(ctx context.Context, req *pb.UpdateExerciseRequest) (*pb.UpdateExerciseResponse, error) {
+	resp, err := s.store.UpdateExercises(req)
+	if err != nil {
+		return &pb.UpdateExerciseResponse{Message: err.Error()}, err
+	}
+
+	return &pb.UpdateExerciseResponse{Message: resp}, nil
 }
 
 func (s server) UpdateTeamPassword(ctx context.Context, req *pb.UpdateTeamPassRequest) (*pb.UpdateResponse, error) {

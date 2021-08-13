@@ -37,9 +37,9 @@ var (
 	AddEventQuery = "INSERT INTO event (tag, name, available, capacity, frontends, status, exercises, started_at, finish_expected, finished_at, createdby, onlyvpn,secretKey, disabledExercises)" +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12,$13,$14)"
 
-	UpdateCloseEvent  = "UPDATE event SET tag = $2, finished_at = $3 WHERE tag = $1"
-	UpdateEventStatus = "UPDATE event SET status = $2 WHERE tag = $1 "
-
+	UpdateCloseEvent            = "UPDATE event SET tag = $2, finished_at = $3 WHERE tag = $1"
+	UpdateEventStatus           = "UPDATE event SET status = $2 WHERE tag = $1 "
+	UpdateExercises             = "UPDATE event SET exercises = (SELECT (SELECT exercises FROM event WHERE id = $1) || $2) WHERE id=$1"
 	UpdateEventLastaccessedDate = "UPDATE team SET last_access = $2 WHERE tag = $1"
 	UpdateTeamSolvedChl         = "UPDATE team SET solved_challenges = $2 WHERE tag = $1"
 	UpdateTeamPassword          = "UPDATE team SET password = $1 WHERE tag = $2 and event_id = $3"
