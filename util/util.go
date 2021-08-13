@@ -21,6 +21,7 @@ type server struct {
 	store database.Store
 	auth  Authenticator
 	tls   bool
+	pb.UnimplementedStoreServer
 }
 
 type certificate struct {
