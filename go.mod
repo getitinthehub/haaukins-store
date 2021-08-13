@@ -3,7 +3,7 @@ module github.com/aau-network-security/haaukins-store
 go 1.13
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/lib/pq v1.3.0
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect

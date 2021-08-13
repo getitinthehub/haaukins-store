@@ -198,6 +198,15 @@ func (s server) DeleteTeam(ctx context.Context, req *pb.DelTeamRequest) (*pb.Del
 	return &pb.DelTeamResp{Message: result}, nil
 }
 
+func (s server) UpdateExercises(ctx context.Context, req *pb.UpdateExerciseRequest) (*pb.UpdateExerciseResponse, error) {
+	resp, err := s.store.UpdateExercises(req)
+	if err != nil {
+		return &pb.UpdateExerciseResponse{Message: err.Error()}, err
+	}
+
+	return &pb.UpdateExerciseResponse{Message: resp}, nil
+}
+
 func (s server) UpdateTeamPassword(ctx context.Context, req *pb.UpdateTeamPassRequest) (*pb.UpdateResponse, error) {
 	if err := s.store.UpdateTeamPassword(req); err != nil {
 		log.Printf("ERR: Error Update team %s password: %s", req.TeamID, err.Error())
